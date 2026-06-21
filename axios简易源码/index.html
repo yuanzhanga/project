@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body></body>
+  <script>
+    //这样也可以改变promise状态
+    let change;
+    let a = new Promise((res) => {
+      change = res;
+    });
+    change();
+    console.log(a); //fulfilled状态
+    //axios简易源码
+    //request->dispatch->adapter
+    //构造函数
+    function Axios(config) {
+      this.defaults = config;
+      this.interceptors = {
+        request: new InterceptorManger(),
+        response: new InterceptorManger(),
+      };
+    }
+    //管理拦截器
+    function InterceptorManger() {
+      this.headers = []; //放拦截器的位置
+    }
+    //添加拦截器的use方法
+    InterceptorManger.prototype.use = function (fulfilled, rejected) {
+      this.headers.push({ fulfilled, rejected });
+    };
+    //axios函数request方法
+    Axios.prototype.request = function (config) {
+      let promise = Promise.resolve(config);
+      let chains = [dispatchRequest, undefined];
+      //添加拦截器
+      this.interceptors.request.headers.forEach((item) => {
+        chains.unshift(item.fulfilled, item.rejected);
+      });
+      this.interceptors.response.headers.forEach((item) => {
+        chains.push(item.fulfilled, item.rejected);
+      });
+      //循环执行拦截器
+      while (chains.length > 0) {
+        promise = promise.then(chains.shift(), chains.shift());
+      }
+      return promise;
+    };
+    //网络请求其他方法，内部都是执行request函数
+    Axios.prototype.get = function (config) {
+      return this.request({ method: "get" });
+    };
+    Axios.prototype.post = function (config) {
+      return this.request({ method: "post" });
+    };
+    //派遣交给哪个网络请求，是xhr还是http
+    function dispatchRequest(config) {
+      return xhrAdapter(config)
+        .then((res) => {
+          return res;
+        })
+        .catch((err) => {
+          throw err;
+        });
+    }
+    //网络请求封装xhr
+    function xhrAdapter(config) {
+      return new Promise((resolve, reject) => {
+        let xhr = new XMLHttpRequest();
+        xhr.open(config.method, config.url);
+        xhr.send();
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4) {
+            if ((xhr.status >= 200) && (xhr.status < 300)) {
+              resolve({
+                config: config,
+                status: xhr.status,
+                statusText: xhr.statusText,
+                headers: xhr.getAllResponseHeaders(),
+                data: xhr.response,
+                request: xhr,
+              });
+            } else {
+              reject(new Error("失败"));
+            }
+          }
+        };
+      });
+    }
+    //创建既能当函数又能当对象的实例
+    function createInstance(config) {
+      const context = new Axios(config); //只能当对象
+      let instance = Axios.prototype.request.bind(context); //只能当函数
+      //函数，对象结合
+      for (const key in context) {
+        instance[key] = context[key];
+      }
+      for (const key in Axios.prototype) {
+        instance[key] = Axios.prototype[key].bind(context);
+      }
+      return instance;
+    }
+    let axios = createInstance();
+    //添加拦截器
+    axios.interceptors.request.use(
+      function one(config) {
+        console.log("请求拦截器1成功");
+        return Promise.resolve(config);
+      },
+      function one(error) {
+        console.log("请求拦截器1失败");
+        return Promise.reject(error);
+      }
+    );
+    axios.interceptors.request.use(
+      function two(config) {
+        console.log("请求拦截器2成功");
+        return config;
+      },
+      function two(error) {
+        console.log("请求拦截器2失败");
+        return Promise.reject(error);
+      }
+    );
+    axios.interceptors.response.use(
+      function one(response) {
+        console.log("响应拦截器1成功");
+        return response;
+      },
+      function one(error) {
+        console.log("响应拦截器1失败");
+        return Promise.reject(error);
+      }
+    );
+    axios.interceptors.response.use(
+      function two(response) {
+        console.log("响应拦截器2成功");
+        return response;
+      },
+      function two(error) {
+        console.log("响应拦截器2失败");
+        return Promise.reject(error);
+      }
+    );
+    axios({ method: "get", url: "http://localhost:3000/posts" }).then((res) => {
+      console.log(JSON.parse(res.data)[0]);
+    });
+  </script>
+</html>

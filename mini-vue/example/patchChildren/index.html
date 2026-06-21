@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script src="main.js" type="module"></script>
+  </body>
+</html>
+<!-- <script>
+  var maximumUniqueSubarray = function (nums) {
+    let arr = [];
+    let sum = 0;
+    for (let i = 0; i < nums.length; i++) {
+      if (!arr.includes(nums[i])) {
+        arr.push(nums[i]);
+        sum = Math.max(
+          sum,
+          arr.reduce((a, b) => a + b)
+        );
+      } else {
+        arr.shift();
+        sum -= arr[0];
+        i--;
+      }
+      console.log(nums[i], arr, sum);
+    }
+    return sum;
+  };
+  console.log(maximumUniqueSubarray([10000, 1, 10000, 1, 1, 1, 1, 1, 1]));
+  // console.log( [2].reduce((a,b)=>a+b))
+</script> -->

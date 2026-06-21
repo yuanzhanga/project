@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body></body>
+</html>
+<script>
+  class Axios {
+    constructor(config) {
+      this.default = config;
+      this.interceptors = {
+        request: new InterceptorManger(),
+        response: new InterceptorManger(),
+      };
+    }
+    request(config) {
+      let promise = Promise.resolve(config);
+      let chains = [dispatchRequest, undefined];
+      for (let { fulfilled, rejected } of this.interceptors.request.headers) {
+        chains.unshift(fulfilled, rejected);
+      }
+      for (let { fulfilled, rejected } of this.interceptors.response.headers) {
+        chains.push(fulfilled, rejected);
+      }
+      while (chains.length > 0) {
+        promise = promise.then(chains.shift(), chains.shift());
+      }
+      return promise;
+    }
+    get(url, config = {}) {
+      return this.request({ ...config, method: "get", url });
+    }
+    post() {}
+  }
+  class InterceptorManger {
+    constructor() {
+      this.headers = [];
+    }
+    use(fulfilled, rejected) {
+      this.headers.push({ fulfilled, rejected });
+    }
+  }
+  function dispatchRequest(config) {
+    return xhrAdapter(config)
+      .then((res) => {
+        return res;
+      })
+      .catch((err) => {
+        return err;
+      });
+  }
+  function xhrAdapter(config) {
+    return new Promise((resolve, reject) => {
+      let xhr = new XMLHttpRequest();
+      xhr.open(config.method, config.url);
+      xhr.send();
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if ((xhr.status >= 200) & (xhr.status < 300)) {
+            resolve({
+              config: config,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              headers: xhr.getAllResponseHeaders(),
+              data: xhr.response,
+              request: xhr,
+            });
+          } else {
+            reject(new Error("失败"));
+          }
+        }
+      };
+    });
+  }
+  let axios = new Axios({ method: "get", url: "http://localhost:3000/posts" });
+  //添加拦截器
+  axios.interceptors.request.use(
+    function one(config) {
+      console.log("请求拦截器1成功");
+      return Promise.resolve(config);
+    },
+    function one(error) {
+      console.log("请求拦截器1失败");
+      return Promise.reject(error);
+    }
+  );
+  axios.interceptors.request.use(
+    function two(config) {
+      console.log("请求拦截器2成功");
+      return config;
+    },
+    function two(error) {
+      console.log("请求拦截器2失败");
+      return Promise.reject(error);
+    }
+  );
+  axios.interceptors.response.use(
+    function one(response) {
+      console.log("响应拦截器1成功");
+      return response;
+    },
+    function one(error) {
+      console.log("响应拦截器1失败");
+      return Promise.reject(error);
+    }
+  );
+  axios.interceptors.response.use(
+    function two(response) {
+      console.log("响应拦截器2成功");
+      return response;
+    },
+    function two(error) {
+      console.log("响应拦截器2失败");
+      return Promise.reject(error);
+    }
+  );
+  axios
+    .request({ method: "get", url: "http://localhost:3000/posts" })
+    .then((res) => {
+      console.log(JSON.parse(res.data)[0]);
+    });
+</script>

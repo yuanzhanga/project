@@ -1,0 +1,33 @@
+{
+  "name": "vue3why",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vuemap/vue-amap": "^2.1.5",
+    "@vuemap/vue-amap-extra": "^2.1.4",
+    "@vuemap/vue-amap-loca": "^2.1.2",
+    "axios": "^1.7.2",
+    "dayjs": "^1.11.12",
+    "normalize.css": "^8.0.1",
+    "pinia": "^2.2.0",
+    "underscore": "^1.13.7",
+    "vant": "^4.9.3",
+    "vue": "^3.4.29",
+    "vue-amap": "^0.5.10",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@vant/auto-import-resolver": "^1.2.1",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "@vuemap/unplugin-resolver": "^1.0.4",
+    "unplugin-auto-import": "^0.18.2",
+    "unplugin-vue-components": "^0.27.4",
+    "vite": "^5.3.1"
+  }
+}
