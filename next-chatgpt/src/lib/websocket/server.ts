@@ -23,11 +23,15 @@ interface WebSocketResponse {
   data: string;
 }
 
+const ALLOWED_ORIGINS = (
+  process.env.ALLOWED_ORIGINS || `${API_BASE_URL},${API_BASE_URL}:3001`
+).split(",");
+
 const wss = new WebSocketServer({
   port: PORT,
   verifyClient: (info, callback) => {
     const origin = info.origin;
-    if (origin === API_BASE_URL || origin === `${API_BASE_URL}:3001`) {
+    if (ALLOWED_ORIGINS.includes(origin)) {
       callback(true);
     } else {
       console.warn("WebSocket connection rejected from origin:", origin);
