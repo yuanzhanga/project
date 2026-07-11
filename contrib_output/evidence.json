@@ -1,0 +1,822 @@
+{
+  "project": {
+    "repo_path": "C:\\Users\\20506\\Desktop\\Project",
+    "project_name": "Project",
+    "languages": {
+      "HTML": 18,
+      "TypeScript": 118,
+      "JavaScript": 100,
+      "Vue": 79,
+      "CSS": 6
+    },
+    "frameworks": [
+      "TypeScript",
+      "Vue",
+      "Express",
+      "React",
+      "Next.js",
+      "LangChain"
+    ],
+    "databases": [],
+    "middlewares": [],
+    "deployment": [],
+    "architecture_style": "AI Agent / LLM 应用架构；MVC / Model-Service-Controller 倾向",
+    "inferred_domain": "电商/订单交易",
+    "confidence": "中"
+  },
+  "tech_stack": {
+    "languages": {
+      "HTML": 18,
+      "TypeScript": 118,
+      "JavaScript": 100,
+      "Vue": 79,
+      "CSS": 6
+    },
+    "frameworks": [
+      "TypeScript",
+      "Vue",
+      "Express",
+      "React",
+      "Next.js",
+      "LangChain"
+    ],
+    "databases": [],
+    "middlewares": [],
+    "build_tools": [
+      "npm/yarn/pnpm",
+      "Webpack",
+      "Vite"
+    ],
+    "deployment": [],
+    "test_tools": [
+      "Jest",
+      "Vitest"
+    ],
+    "possible_architecture_style": "AI/LLM 应用或模型工程（推断）",
+    "evidence_files": [
+      "axios简易源码\\axios\\package.json",
+      "chatgpt-clone\\package.json",
+      "mini-vue\\package.json",
+      "mini-vue\\mini-vue前置\\jest\\package.json",
+      "mini-vue\\mini-vue前置\\learn-vtu\\package.json",
+      "mini-vue\\mini-vue前置\\mini-vue\\package.json",
+      "next-chatgpt\\package.json",
+      "vue3CMS\\package.json",
+      "vue3why\\package.json"
+    ]
+  },
+  "architecture": {
+    "architecture_style": "AI Agent / LLM 应用架构；MVC / Model-Service-Controller 倾向",
+    "module_map": {
+      "Promise": [
+        "Promise"
+      ],
+      "axios简易源码": [
+        "axios简易源码"
+      ],
+      "axios简易源码\\axios": [
+        "axios简易源码\\axios"
+      ],
+      "chatgpt-clone": [
+        "chatgpt-clone"
+      ],
+      "chatgpt-clone\\public": [
+        "chatgpt-clone\\public"
+      ],
+      "chatgpt-clone\\server": [
+        "chatgpt-clone\\server"
+      ],
+      "chatgpt-clone\\src": [
+        "chatgpt-clone\\src"
+      ],
+      "chatgpt-clone\\uploads": [
+        "chatgpt-clone\\uploads"
+      ],
+      "contrib_output": [
+        "contrib_output"
+      ],
+      "mini-vue": [
+        "mini-vue"
+      ],
+      "mini-vue\\example": [
+        "mini-vue\\example"
+      ],
+      "mini-vue\\lib": [
+        "mini-vue\\lib"
+      ],
+      "mini-vue\\mini-vue前置": [
+        "mini-vue\\mini-vue前置"
+      ],
+      "mini-vue\\src": [
+        "mini-vue\\src"
+      ],
+      "next-chatgpt": [
+        "next-chatgpt"
+      ],
+      "next-chatgpt\\public": [
+        "next-chatgpt\\public"
+      ],
+      "next-chatgpt\\src": [
+        "next-chatgpt\\src"
+      ],
+      "vue3CMS": [
+        "vue3CMS"
+      ],
+      "vue3CMS\\public": [
+        "vue3CMS\\public"
+      ],
+      "vue3CMS\\src": [
+        "vue3CMS\\src"
+      ],
+      "vue3why": [
+        "vue3why"
+      ],
+      "vue3why\\src": [
+        "vue3why\\src"
+      ]
+    },
+    "layer_analysis": [
+      "API 层",
+      "Service 层（业务逻辑）",
+      "前端组件层"
+    ],
+    "dependency_observations": [
+      "主要框架：TypeScript, Vue, Express, React, Next.js, LangChain（来自 axios简易源码\\axios\\package.json, chatgpt-clone\\package.json, mini-vue\\package.json）"
+    ],
+    "architecture_strengths": [
+      "目录体现出分层意识，职责划分有迹可循",
+      "存在测试目录（mini-vue\\mini-vue前置\\jest\\tests, mini-vue\\mini-vue前置\\learn-vtu\\src\\components\\__tests__, mini-vue\\src\\compiler-core\\__tests__）"
+    ],
+    "architecture_risks": [
+      "未发现部署/CI 配置，交付方式无法从仓库确认"
+    ],
+    "confidence": "高"
+  },
+  "business": {
+    "inferred_domain": "电商/订单交易",
+    "project_goal": "README 描述（事实）：练习的辣鸡vue项目，做个记录",
+    "solved_problem": "推断：见 README 描述；具体业务痛点建议向项目负责人确认",
+    "target_users": "推断：需结合业务方确认（仓库内无直接证据）",
+    "core_business_flow": "推断：订单创建与状态流转",
+    "confidence": "中",
+    "missing_information_questions": [
+      "这个项目是真实上线、内部使用，还是课程/练习项目？",
+      "项目的实际用户是谁？大概什么量级？",
+      "项目立项的直接原因是什么（业务痛点 / 课程要求 / 个人兴趣）？",
+      "是否有线上运行数据（QPS、日活、数据量）可以补充？",
+      "团队总人数和分工是怎样的？"
+    ],
+    "evidence_sources": [
+      "README: README.md",
+      "领域关键词命中：order"
+    ]
+  },
+  "commits": [
+    {
+      "hash": "9d409468cb5d8fb9015cb7696c959b46d1efd4db",
+      "short_hash": "9d40946",
+      "author_name": "yuqinggong",
+      "author_email": "147464243+yuanzhanga@users.noreply.github.com",
+      "date": "2026-06-21T16:17:10+08:00",
+      "message": "鍙樻洿閰嶇疆",
+      "changed_files": [
+        "next-chatgpt/package-lock.json",
+        "next-chatgpt/src/lib/websocket/server.ts",
+        "vue3CMS/package.json"
+      ],
+      "additions": 8,
+      "deletions": 889,
+      "file_stats": [],
+      "is_merge": false,
+      "inferred_type": "dependency",
+      "type_confidence": "中",
+      "changed_modules": [
+        "next-chatgpt",
+        "vue3CMS"
+      ],
+      "possible_reason": "推断：该提交属于 dependency 类变更（依据关键词 package.json）",
+      "possible_impact": "推断：管理第三方依赖版本",
+      "evidence_keywords": [
+        "package.json"
+      ],
+      "risk_notes": ""
+    },
+    {
+      "hash": "d3b81f919e859c6883e840b8e1b103dca128d162",
+      "short_hash": "d3b81f9",
+      "author_name": "yuqinggong",
+      "author_email": "147464243+yuanzhanga@users.noreply.github.com",
+      "date": "2026-06-21T15:34:25+08:00",
+      "message": "init-commit",
+      "changed_files": [
+        ".gitignore",
+        "Promise/index.js",
+        "README.md",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/CHANGELOG.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/LICENSE\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/README.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/UPGRADE_GUIDE.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/index.d.ts\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/index.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/adapters/README.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/adapters/http.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/adapters/xhr.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/axios.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/cancel/Cancel.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/cancel/CancelToken.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/cancel/isCancel.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/Axios.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/InterceptorManager.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/README.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/buildFullPath.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/createError.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/dispatchRequest.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/enhanceError.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/mergeConfig.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/settle.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/core/transformData.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/defaults.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/README.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/bind.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/buildURL.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/combineURLs.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/cookies.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/deprecatedMethod.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/isAbsoluteURL.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/isURLSameOrigin.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/normalizeHeaderName.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/parseHeaders.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/helpers/spread.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/lib/utils.js\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/package.json\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/index.html\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/index2.html\"",
+        "chatgpt-clone/.env.example",
+        "chatgpt-clone/.gitignore",
+        "chatgpt-clone/index.html",
+        "chatgpt-clone/package-lock.json",
+        "chatgpt-clone/package.json",
+        "chatgpt-clone/public/favicon.svg",
+        "chatgpt-clone/server/index.js",
+        "chatgpt-clone/server/uploads/cmd_start_for.ini",
+        "\"chatgpt-clone/server/uploads/\\344\\272\\216\\345\\215\\277\\345\\212\\237-2027.8-\\345\\244\\252\\345\\216\\237\\347\\220\\206\\345\\267\\245\\345\\244\\247\\345\\255\\246.pdf\"",
+        "chatgpt-clone/src/App.vue",
+        "chatgpt-clone/src/components/ChatMessage.vue",
+        "chatgpt-clone/src/components/Sidebar.vue",
+        "chatgpt-clone/src/composables/useChat.js",
+        "chatgpt-clone/src/composables/useConversations.js",
+        "chatgpt-clone/src/composables/useMarkdownParser.js",
+        "chatgpt-clone/src/main.js",
+        "chatgpt-clone/src/render.js",
+        "chatgpt-clone/src/styles/main.css",
+        "chatgpt-clone/start.bat",
+        "chatgpt-clone/vite.config.js",
+        "mini-vue/1.html",
+        "mini-vue/babel.config.js",
+        "mini-vue/coverage/clover.xml",
+        "mini-vue/coverage/coverage-final.json",
+        "mini-vue/coverage/lcov-report/base.css",
+        "mini-vue/coverage/lcov-report/block-navigation.js",
+        "mini-vue/coverage/lcov-report/favicon.png",
+        "mini-vue/coverage/lcov-report/index.html",
+        "mini-vue/coverage/lcov-report/prettify.css",
+        "mini-vue/coverage/lcov-report/prettify.js",
+        "mini-vue/coverage/lcov-report/reactive.ts.html",
+        "mini-vue/coverage/lcov-report/sort-arrow-sprite.png",
+        "mini-vue/coverage/lcov-report/sorter.js",
+        "mini-vue/coverage/lcov.info",
+        "mini-vue/demo.html",
+        "mini-vue/example/apiInject/App.js",
+        "mini-vue/example/apiInject/index.html",
+        "mini-vue/example/componentEmit/App.js",
+        "mini-vue/example/componentEmit/emitDemo.js",
+        "mini-vue/example/componentEmit/index.html",
+        "mini-vue/example/componentEmit/main.js",
+        "mini-vue/example/componentSlot/App.js",
+        "mini-vue/example/componentSlot/Foo.js",
+        "mini-vue/example/componentSlot/index.html",
+        "mini-vue/example/componentSlot/main.js",
+        "mini-vue/example/componentUpdate/App.js",
+        "mini-vue/example/componentUpdate/Child.js",
+        "mini-vue/example/componentUpdate/index.html",
+        "mini-vue/example/currentInstance/App.js",
+        "mini-vue/example/currentInstance/Foo.js",
+        "mini-vue/example/currentInstance/index.html",
+        "mini-vue/example/currentInstance/main.js",
+        "mini-vue/example/helloword/App.js",
+        "mini-vue/example/helloword/Foo.js",
+        "mini-vue/example/helloword/index.html",
+        "mini-vue/example/helloword/main.js",
+        "mini-vue/example/patchChildren/App.js",
+        "mini-vue/example/patchChildren/PatchChildren.js",
+        "mini-vue/example/patchChildren/index.html",
+        "mini-vue/example/patchChildren/main.js",
+        "mini-vue/example/propsUpdate/App.js",
+        "mini-vue/example/propsUpdate/Child.js",
+        "mini-vue/example/propsUpdate/index.html",
+        "mini-vue/lib/mini-vue.cjs.js",
+        "mini-vue/lib/mini-vue.js",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/diff/h.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/diff/index.html\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/diff/vnode.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/jest/add.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/jest/index.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/jest/package-lock.json\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/jest/package.json\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/jest/tests/add.test.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/.gitignore\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/README.md\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/index.html\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/jsconfig.json\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/package-lock.json\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/package.json\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/public/favicon.ico\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/App.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/assets/base.css\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/assets/logo.svg\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/assets/main.css\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/HelloWorld.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/TheWelcome.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/WelcomeItem.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/__tests__/HelloWorld.spec.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/__tests__/TheWelcome.spec.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/icons/IconCommunity.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/icons/IconDocumentation.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/icons/IconEcosystem.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/icons/IconSupport.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/components/icons/IconTooling.vue\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/src/main.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/vite.config.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/learn-vtu/vitest.config.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/App.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/core/createApp.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/core/h.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/core/index.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/core/reactivity.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/core/renderer.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/index.html\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/main.js\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/package-lock.json\"",
+        "\"mini-vue/mini-vue\\345\\211\\215\\347\\275\\256/mini-vue/package.json\"",
+        "mini-vue/package-lock.json",
+        "mini-vue/package.json",
+        "mini-vue/rollup.config.js",
+        "mini-vue/src/compiler-core/__tests__/__snapshots__/codegen.spec.ts.snap",
+        "mini-vue/src/compiler-core/__tests__/codegen.spec.ts",
+        "mini-vue/src/compiler-core/__tests__/parse.spec.ts",
+        "mini-vue/src/compiler-core/__tests__/transform.spec.ts",
+        "mini-vue/src/compiler-core/src/ast.ts",
+        "mini-vue/src/compiler-core/src/codegen.ts",
+        "mini-vue/src/compiler-core/src/compile.ts",
+        "mini-vue/src/compiler-core/src/index.ts",
+        "mini-vue/src/compiler-core/src/parse.ts",
+        "mini-vue/src/compiler-core/src/runtimeHelpers.ts",
+        "mini-vue/src/compiler-core/src/transform.ts",
+        "mini-vue/src/compiler-core/src/transforms/transformElement.ts",
+        "mini-vue/src/compiler-core/src/transforms/transformExpression.ts",
+        "mini-vue/src/compiler-core/src/transforms/transformText.ts",
+        "mini-vue/src/compiler-core/src/utils.ts",
+        "mini-vue/src/index.ts",
+        "mini-vue/src/reactivity/baseHandlers.ts",
+        "mini-vue/src/reactivity/computed.ts",
+        "mini-vue/src/reactivity/effect.ts",
+        "mini-vue/src/reactivity/index.ts",
+        "mini-vue/src/reactivity/reactive.ts",
+        "mini-vue/src/reactivity/ref.ts",
+        "mini-vue/src/reactivity/tests/effect.spec.ts",
+        "mini-vue/src/reactivity/tests/index.spec.ts",
+        "mini-vue/src/reactivity/tests/reactive.spec.ts",
+        "mini-vue/src/runtime-core/__tests__/apiWatch.spec.ts",
+        "mini-vue/src/runtime-core/__tests__/componentEmits.spec.ts",
+        "mini-vue/src/runtime-core/__tests__/rendererComponent.spec.ts",
+        "mini-vue/src/runtime-core/__tests__/rendererElement.spec.ts",
+        "mini-vue/src/runtime-core/apiInject.ts",
+        "mini-vue/src/runtime-core/apiWatch.ts",
+        "mini-vue/src/runtime-core/component.ts",
+        "mini-vue/src/runtime-core/componentEmit.ts",
+        "mini-vue/src/runtime-core/componentProps.ts",
+        "mini-vue/src/runtime-core/componentPublicInstance.ts",
+        "mini-vue/src/runtime-core/componentSlots.ts",
+        "mini-vue/src/runtime-core/componentUpdateUtils.ts",
+        "mini-vue/src/runtime-core/createApp.ts",
+        "mini-vue/src/runtime-core/h.ts",
+        "mini-vue/src/runtime-core/helpers/renderSlot.ts",
+        "mini-vue/src/runtime-core/index.ts",
+        "mini-vue/src/runtime-core/renderer.ts",
+        "mini-vue/src/runtime-core/scheduler.ts",
+        "mini-vue/src/runtime-core/vnode.ts",
+        "mini-vue/src/runtime-dom/index.ts",
+        "mini-vue/src/shared/index.ts",
+        "mini-vue/src/shared/shapeFlags.ts",
+        "mini-vue/src/shared/toDisplayString.ts",
+        "mini-vue/tsconfig.json",
+        "mini-vue/yarn.lock",
+        "next-chatgpt/next-env.d.ts",
+        "next-chatgpt/next.config.js",
+        "next-chatgpt/package-lock.json",
+        "next-chatgpt/package.json",
+        "next-chatgpt/postcss.config.js",
+        "next-chatgpt/public/favicon.ico",
+        "next-chatgpt/src/app/api/chat/route.ts",
+        "next-chatgpt/src/app/api/sessions/route.ts",
+        "next-chatgpt/src/app/globals.css",
+        "next-chatgpt/src/app/layout.tsx",
+        "next-chatgpt/src/app/page.tsx",
+        "next-chatgpt/src/components/ChatInput.tsx",
+        "next-chatgpt/src/components/MarkdownRenderer.tsx",
+        "next-chatgpt/src/components/Sidebar.tsx",
+        "next-chatgpt/src/components/VirtualMessageList.tsx",
+        "next-chatgpt/src/components/VoiceInput.tsx",
+        "next-chatgpt/src/env.ts",
+        "next-chatgpt/src/hooks/useChatClient.ts",
+        "next-chatgpt/src/hooks/useSSEQueue.ts",
+        "next-chatgpt/src/hooks/useVoiceInput.ts",
+        "next-chatgpt/src/hooks/useWebSocket.ts",
+        "next-chatgpt/src/lib/langchain/chain.ts",
+        "next-chatgpt/src/lib/langchain/memory.ts",
+        "next-chatgpt/src/lib/queue/workerPool.ts",
+        "next-chatgpt/src/lib/websocket/server.ts",
+        "next-chatgpt/tailwind.config.js",
+        "next-chatgpt/tsconfig.json",
+        "vue3CMS/.editorconfig",
+        "vue3CMS/.gitattributes",
+        "vue3CMS/.gitignore",
+        "vue3CMS/.prettierrc.json",
+        "vue3CMS/README.md",
+        "vue3CMS/auto-imports.d.ts",
+        "vue3CMS/components.d.ts",
+        "vue3CMS/env.d.ts",
+        "vue3CMS/eslint.config.ts",
+        "vue3CMS/index.html",
+        "vue3CMS/package-lock.json",
+        "vue3CMS/package.json",
+        "vue3CMS/public/favicon.ico",
+        "vue3CMS/src/App.vue",
+        "vue3CMS/src/assets/css/common.less",
+        "vue3CMS/src/assets/css/index.css",
+        "vue3CMS/src/assets/css/index.css.map",
+        "vue3CMS/src/assets/css/index.less",
+        "vue3CMS/src/assets/css/reset.less",
+        "vue3CMS/src/assets/img/login-bg.svg",
+        "vue3CMS/src/assets/img/logo.svg",
+        "vue3CMS/src/components/main-header/c-cpns/head-crumb.vue",
+        "vue3CMS/src/components/main-header/c-cpns/header-info.vue",
+        "vue3CMS/src/components/main-header/mainHeader.vue",
+        "vue3CMS/src/components/main-menu/mainMenu.vue",
+        "vue3CMS/src/components/page-content/page-content.vue",
+        "vue3CMS/src/components/page-echarts/data/china.json",
+        "vue3CMS/src/components/page-echarts/index.ts",
+        "vue3CMS/src/components/page-echarts/src/bar-echart.vue",
+        "vue3CMS/src/components/page-echarts/src/base-echart.vue",
+        "vue3CMS/src/components/page-echarts/src/line-echart.vue",
+        "vue3CMS/src/components/page-echarts/src/map-echart.vue",
+        "vue3CMS/src/components/page-echarts/src/pie-echart.vue",
+        "vue3CMS/src/components/page-echarts/src/rose-echart.vue",
+        "vue3CMS/src/components/page-echarts/types/index.ts",
+        "vue3CMS/src/components/page-echarts/utils/convert-data.ts",
+        "vue3CMS/src/components/page-echarts/utils/coordinate-data.ts",
+        "vue3CMS/src/components/page-modal/page-modal.vue",
+        "vue3CMS/src/components/page-search/page-search.vue",
+        "vue3CMS/src/global/index.ts",
+        "vue3CMS/src/hooks/usePageContent.ts",
+        "vue3CMS/src/hooks/usePageModal.ts",
+        "vue3CMS/src/hooks/usePermissions.ts",
+        "vue3CMS/src/main.ts",
+        "vue3CMS/src/router/index.ts",
+        "vue3CMS/src/router/main/analysis/dashboard/dashboard.ts",
+        "vue3CMS/src/router/main/analysis/overview/overview.ts",
+        "vue3CMS/src/router/main/product/category/category.ts",
+        "vue3CMS/src/router/main/product/goods/goods.ts",
+        "vue3CMS/src/router/main/story/chat/chat.ts",
+        "vue3CMS/src/router/main/story/list/list.ts",
+        "vue3CMS/src/router/main/system/department/department.ts",
+        "vue3CMS/src/router/main/system/menu/menu.ts",
+        "vue3CMS/src/router/main/system/role/role.ts",
+        "vue3CMS/src/router/main/system/user/user.ts",
+        "vue3CMS/src/service/config/index.ts",
+        "vue3CMS/src/service/index.ts",
+        "vue3CMS/src/service/login/login.ts",
+        "vue3CMS/src/service/main/analysis/analysis.ts",
+        "vue3CMS/src/service/main/main.ts",
+        "vue3CMS/src/service/main/system/system.ts",
+        "vue3CMS/src/service/request/index.ts",
+        "vue3CMS/src/service/request/type.ts",
+        "vue3CMS/src/store/index.ts",
+        "vue3CMS/src/store/login/login.ts",
+        "vue3CMS/src/store/main/analysis/analysis.ts",
+        "vue3CMS/src/store/main/main.ts",
+        "vue3CMS/src/store/main/system/system.ts",
+        "vue3CMS/src/types/index.ts",
+        "vue3CMS/src/types/login.ts",
+        "vue3CMS/src/utils/cache.ts",
+        "vue3CMS/src/utils/formatDate.ts",
+        "vue3CMS/src/utils/map-menus.ts",
+        "vue3CMS/src/views/login/Login.vue",
+        "vue3CMS/src/views/login/c-cpns/AccountLoginTab.vue",
+        "vue3CMS/src/views/login/c-cpns/PhoneLoginTab.vue",
+        "vue3CMS/src/views/login/c-cpns/login-panel.vue",
+        "vue3CMS/src/views/main/Main.vue",
+        "vue3CMS/src/views/main/analysis/dashboard/c-cpns/chart-card/chart-card.vue",
+        "vue3CMS/src/views/main/analysis/dashboard/c-cpns/count-card/count-card.vue",
+        "vue3CMS/src/views/main/analysis/dashboard/dashboard.vue",
+        "vue3CMS/src/views/main/analysis/overview/overview.vue",
+        "vue3CMS/src/views/main/product/category/category.vue",
+        "vue3CMS/src/views/main/product/goods/goods.vue",
+        "vue3CMS/src/views/main/story/chat/chat.vue",
+        "vue3CMS/src/views/main/story/list/list.vue",
+        "vue3CMS/src/views/main/system/department/c-cpns/page-content.vue",
+        "vue3CMS/src/views/main/system/department/c-cpns/page-modal.vue",
+        "vue3CMS/src/views/main/system/department/c-cpns/page-search.vue",
+        "vue3CMS/src/views/main/system/department/config/content.config.ts",
+        "vue3CMS/src/views/main/system/department/config/modal.config.ts",
+        "vue3CMS/src/views/main/system/department/config/search.config.ts",
+        "vue3CMS/src/views/main/system/department/department.vue",
+        "vue3CMS/src/views/main/system/department/department_v1.vue",
+        "vue3CMS/src/views/main/system/menu/config/content.config.ts",
+        "vue3CMS/src/views/main/system/menu/menu.vue",
+        "vue3CMS/src/views/main/system/role/config/content.config.ts",
+        "vue3CMS/src/views/main/system/role/config/modal.config.ts",
+        "vue3CMS/src/views/main/system/role/config/search.config.ts",
+        "vue3CMS/src/views/main/system/role/role.vue",
+        "vue3CMS/src/views/main/system/user/c-cpns/user-content.vue",
+        "vue3CMS/src/views/main/system/user/c-cpns/user-modal.vue",
+        "vue3CMS/src/views/main/system/user/c-cpns/user-search.vue",
+        "vue3CMS/src/views/main/system/user/user.vue",
+        "vue3CMS/src/views/not-found/NotFound.vue",
+        "vue3CMS/tsconfig.app.json",
+        "vue3CMS/tsconfig.json",
+        "vue3CMS/tsconfig.node.json",
+        "vue3CMS/vite.config.ts",
+        "vue3why/.gitignore",
+        "vue3why/README.md",
+        "vue3why/index.html",
+        "vue3why/jsconfig.json",
+        "vue3why/package-lock.json",
+        "vue3why/package.json",
+        "vue3why/src/App.vue",
+        "vue3why/src/assets/foot.js",
+        "vue3why/src/components/detail/cpns/facility.vue",
+        "vue3why/src/components/detail/cpns/hotfacility.vue",
+        "vue3why/src/components/detail/cpns/housefacility.vue",
+        "vue3why/src/components/detail/cpns/infos.vue",
+        "vue3why/src/components/detail/cpns/landlordfacility.vue",
+        "vue3why/src/components/detail/cpns/map.vue",
+        "vue3why/src/components/detail/cpns/notice.vue",
+        "vue3why/src/components/detail/cpns/swipe.vue",
+        "vue3why/src/components/detail/cpns/tabcontrol.vue",
+        "vue3why/src/components/detail/detail.vue",
+        "vue3why/src/components/hotv3/hotv3.vue",
+        "vue3why/src/components/hotv9/hotv9.vue",
+        "vue3why/src/components/loading/loading.vue",
+        "vue3why/src/components/tab-bar/tab-bar.vue",
+        "vue3why/src/css/reset.css",
+        "vue3why/src/hooks/uesScroll.js",
+        "vue3why/src/main.js",
+        "vue3why/src/router/index.js",
+        "vue3why/src/service/modules/categories.js",
+        "vue3why/src/service/modules/city.js",
+        "vue3why/src/service/modules/detail.js",
+        "vue3why/src/service/modules/homehot.js",
+        "vue3why/src/service/modules/search.js",
+        "vue3why/src/service/request/config.js",
+        "vue3why/src/service/request/index.js",
+        "vue3why/src/stores/modules/categories.js",
+        "vue3why/src/stores/modules/city.js",
+        "vue3why/src/stores/modules/homehot.js",
+        "vue3why/src/stores/modules/index.js",
+        "vue3why/src/stores/modules/main.js",
+        "vue3why/src/stores/modules/search.js",
+        "vue3why/src/utils/formatdate.js",
+        "vue3why/src/views/city/city.vue",
+        "vue3why/src/views/city/cpns/group.vue",
+        "vue3why/src/views/favor/favor.vue",
+        "vue3why/src/views/home/cpns/homearea.vue",
+        "vue3why/src/views/home/cpns/homecate.vue",
+        "vue3why/src/views/home/cpns/homehot.vue",
+        "vue3why/src/views/home/cpns/homesearch.vue",
+        "vue3why/src/views/home/cpns/hometop.vue",
+        "vue3why/src/views/home/cpns/showsearch.vue",
+        "vue3why/src/views/home/home.vue",
+        "vue3why/src/views/message/message.vue",
+        "vue3why/src/views/order/order.vue",
+        "vue3why/src/views/search/search.vue",
+        "vue3why/vite.config.js"
+      ],
+      "additions": 58623,
+      "deletions": 0,
+      "file_stats": [],
+      "is_merge": false,
+      "inferred_type": "dependency",
+      "type_confidence": "中",
+      "changed_modules": [
+        "\"axios",
+        "\"chatgpt-clone",
+        "\"mini-vue",
+        "(root)",
+        "Promise",
+        "chatgpt-clone",
+        "mini-vue",
+        "next-chatgpt",
+        "vue3CMS",
+        "vue3why"
+      ],
+      "possible_reason": "推断：该提交属于 dependency 类变更（依据关键词 package.json）",
+      "possible_impact": "推断：管理第三方依赖版本",
+      "evidence_keywords": [
+        "package.json"
+      ],
+      "risk_notes": ""
+    }
+  ],
+  "authors": [
+    {
+      "author_name": "yuqinggong",
+      "author_email": "147464243+yuanzhanga@users.noreply.github.com",
+      "commit_count": 2,
+      "first_commit_date": "2026-06-21T15:34:25+08:00",
+      "last_commit_date": "2026-06-21T16:17:10+08:00",
+      "total_additions": 58631,
+      "total_deletions": 889,
+      "main_files": [
+        "next-chatgpt/package-lock.json",
+        "next-chatgpt/src/lib/websocket/server.ts",
+        "vue3CMS/package.json",
+        ".gitignore",
+        "Promise/index.js",
+        "README.md",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/CHANGELOG.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/LICENSE\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/README.md\"",
+        "\"axios\\347\\256\\200\\346\\230\\223\\346\\272\\220\\347\\240\\201/axios/UPGRADE_GUIDE.md\""
+      ],
+      "main_modules": [
+        "vue3CMS",
+        "mini-vue",
+        "vue3why",
+        "\"mini-vue",
+        "\"axios",
+        "next-chatgpt"
+      ],
+      "change_type_distribution": {
+        "dependency": 2
+      },
+      "activity_timeline": {
+        "2026-06": 2
+      },
+      "weekday_commits": 0,
+      "weekend_commits": 2,
+      "daytime_commits": 2,
+      "night_commits": 0,
+      "is_project_initializer": true,
+      "touches_core_modules": true,
+      "does_late_maintenance": true,
+      "contribution_roles": [
+        "项目初始化者",
+        "配置部署维护者",
+        "前端开发者",
+        "后端开发者"
+      ],
+      "contribution_level": "较低",
+      "module_ownership": {
+        "next-chatgpt": "maintainer",
+        "vue3CMS": "maintainer",
+        "(root)": "participant",
+        "Promise": "assistant",
+        "\"axios": "maintainer",
+        "chatgpt-clone": "maintainer",
+        "\"chatgpt-clone": "assistant",
+        "mini-vue": "maintainer",
+        "\"mini-vue": "maintainer",
+        "vue3why": "maintainer"
+      },
+      "evidence_commits": [
+        "9d40946",
+        "d3b81f9"
+      ]
+    }
+  ],
+  "target_author": "yuqinggong",
+  "resume_claims": [
+    {
+      "text": "参与 vue3CMS 模块的开发与维护，工作包括 依赖管理（2 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit 9d40946（dependency）：next-chatgpt/package-lock.json, next-chatgpt/src/lib/websocket/server.ts, vue3CMS/package.json",
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "参与 mini-vue 模块的开发与维护，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "参与 vue3why 模块的开发与维护，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "参与 \"mini-vue 模块的开发与维护，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 vue3CMS 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（2 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit 9d40946（dependency）：next-chatgpt/package-lock.json, next-chatgpt/src/lib/websocket/server.ts, vue3CMS/package.json",
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 mini-vue 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 vue3why 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 \"mini-vue 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 vue3CMS 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（2 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit 9d40946（dependency）：next-chatgpt/package-lock.json, next-chatgpt/src/lib/websocket/server.ts, vue3CMS/package.json",
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 mini-vue 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 vue3why 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    },
+    {
+      "text": "负责该模块部分开发与维护 \"mini-vue 模块，基于 TypeScript、Vue、Express，工作包括 依赖管理（1 次提交）",
+      "risk_level": "safe",
+      "support_evidence": [
+        "commit d3b81f9（dependency）：.gitignore, Promise/index.js, README.md"
+      ],
+      "needs_user_confirmation": false,
+      "forbidden_reason": ""
+    }
+  ],
+  "analysis_params": {
+    "base": null,
+    "branch": null,
+    "since": null,
+    "until": null,
+    "mode": "full",
+    "strict": false,
+    "max_commits": 2000,
+    "has_tests": true
+  }
+}

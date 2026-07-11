@@ -1,0 +1,17 @@
+{
+  "total_commits": 2,
+  "total_authors": 1,
+  "commit_type_distribution": {
+    "dependency": 2
+  },
+  "authors": [
+    {
+      "name": "yuqinggong",
+      "email": "147464243+yuanzhanga@users.noreply.github.com",
+      "commits": 2,
+      "additions": 58631,
+      "deletions": 889,
+      "contribution_level": "较低"
+    }
+  ]
+}
