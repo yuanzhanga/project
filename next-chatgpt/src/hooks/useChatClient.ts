@@ -1,15 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { useWebSocket } from "./useWebSocket";
-// import { useWebSocket } from "./usePusherWebSocket";
-import { useSSEQueue } from "./useSSEQueue";
+import { useWebSocket, WSResult } from "./useWebSocket";
+import { useSSEQueue, SSEResult } from "./useSSEQueue";
+import { ChatMessage } from "@/lib/langchain/chain";
+import { ToolCall } from "@/lib/tools/types";
 
-interface ChatClientOptions {
+export interface ChatClientOptions {
   websocketUrl?: string;
   reconnectAttempts?: number;
   reconnectInterval?: number;
   connectionTimeout?: number;
   onChunk?: (chunk: string) => void;
-  onComplete?: (content: string) => void;
+  onToolCalls?: (toolCalls: ToolCall[]) => void;
+  onComplete?: (content: string, finishReason: string) => void;
   onError?: (error: Error) => void;
 }
 
@@ -20,12 +22,13 @@ export function useChatClient(options: ChatClientOptions = {}) {
     reconnectInterval = 1000,
     connectionTimeout = 3000,
     onChunk,
+    onToolCalls,
     onComplete,
     onError,
   } = options;
 
   const [connectionType, setConnectionType] = useState<"websocket" | "sse">(
-    "websocket",
+    "websocket"
   );
   const [connectionStatus, setConnectionStatus] = useState<
     "connecting" | "connected" | "disconnected" | "error" | "fallback"
@@ -36,22 +39,16 @@ export function useChatClient(options: ChatClientOptions = {}) {
   const isSendingRef = useRef(false);
 
   const onChunkRef = useRef(onChunk);
+  const onToolCallsRef = useRef(onToolCalls);
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
 
-  useEffect(() => {
-    onChunkRef.current = onChunk;
-  }, [onChunk]);
+  useEffect(() => { onChunkRef.current = onChunk; }, [onChunk]);
+  useEffect(() => { onToolCallsRef.current = onToolCalls; }, [onToolCalls]);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-  }, [onComplete]);
-
-  useEffect(() => {
-    onErrorRef.current = onError;
-  }, [onError]);
-
-  // WebSocket 连接
+  // WebSocket
   const {
     isConnected: wsIsConnected,
     connectionStatus: wsConnectionStatus,
@@ -73,7 +70,9 @@ export function useChatClient(options: ChatClientOptions = {}) {
       setConnectionStatus("disconnected");
     },
     onChunk: (chunk) => onChunkRef.current?.(chunk),
-    onComplete: (content) => onCompleteRef.current?.(content),
+    onToolCalls: (toolCalls) => onToolCallsRef.current?.(toolCalls),
+    onComplete: (content, finishReason) =>
+      onCompleteRef.current?.(content, finishReason),
     onError: (error) => {
       onErrorRef.current?.(error);
       setConnectionType("sse");
@@ -92,7 +91,7 @@ export function useChatClient(options: ChatClientOptions = {}) {
     },
   });
 
-  // SSE 队列
+  // SSE fallback
   const {
     sendMessage: sseSendMessage,
     cancelRequest,
@@ -102,17 +101,17 @@ export function useChatClient(options: ChatClientOptions = {}) {
   } = useSSEQueue({
     maxConcurrent: 2,
     onChunk: (chunk) => onChunkRef.current?.(chunk),
-    onComplete: (content) => onCompleteRef.current?.(content),
+    onToolCalls: (toolCalls) => onToolCallsRef.current?.(toolCalls),
+    onComplete: (content, finishReason) =>
+      onCompleteRef.current?.(content, finishReason),
     onError: (error) => onErrorRef.current?.(error),
   });
 
-  // 统一的发送消息方法
   const sendMessage = useCallback(
     async (
       sessionId: string,
-      message: string,
-      chunkCallback?: (chunk: string) => void,
-    ): Promise<string> => {
+      messages: ChatMessage[]
+    ): Promise<{ content: string; finishReason: string; toolCalls: ToolCall[] }> => {
       if (isSendingRef.current) {
         throw new Error("Message already sending");
       }
@@ -121,23 +120,38 @@ export function useChatClient(options: ChatClientOptions = {}) {
       try {
         if (useWebSocketRef.current && wsIsConnected) {
           try {
-            return await wsSendMessage(sessionId, message, (chunk) => {
-              onChunkRef.current?.(chunk);
-              chunkCallback?.(chunk);
-            });
-          } catch {
-            useWebSocketRef.current = false;
-            setConnectionType("sse");
-            setConnectionStatus("fallback");
+            const result: WSResult = await wsSendMessage(
+              sessionId,
+              messages,
+              (chunk) => onChunkRef.current?.(chunk),
+              (toolCalls) => onToolCallsRef.current?.(toolCalls)
+            );
+            return {
+              content: result.content,
+              finishReason: result.finishReason,
+              toolCalls: result.toolCalls,
+            };
+          } catch (wsErr) {
+            // 消息级错误：报告但不切换通道（WebSocket 连接本身没问题）
+            onErrorRef.current?.(wsErr as Error);
+            throw wsErr; // 直接抛出，不 fallback 到 SSE
           }
         }
 
         if (useSSERef.current) {
           try {
-            return await sseSendMessage(sessionId, message);
-          } catch {
-            useSSERef.current = false;
-            throw new Error("SSE connection failed");
+            const result: SSEResult = await sseSendMessage(
+              sessionId,
+              messages
+            );
+            return {
+              content: result.content,
+              finishReason: result.finishReason,
+              toolCalls: result.toolCalls,
+            };
+          } catch (sseErr) {
+            onErrorRef.current?.(sseErr as Error);
+            throw sseErr;
           }
         }
 
@@ -146,10 +160,9 @@ export function useChatClient(options: ChatClientOptions = {}) {
         isSendingRef.current = false;
       }
     },
-    [wsSendMessage, sseSendMessage, wsIsConnected],
+    [wsSendMessage, sseSendMessage, wsIsConnected]
   );
 
-  // 断开连接
   const disconnect = useCallback(() => {
     wsDisconnect();
     cancelAll();

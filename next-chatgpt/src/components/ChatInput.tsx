@@ -72,7 +72,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         isFocused ? "ring-1 ring-blue-500" : ""
       } transition-all duration-200`}
     >
-      <VoiceInput onResult={handleVoiceResult} />
+      <VoiceInput onResult={handleVoiceResult} disabled={disabled} />
       <div className="flex-1 relative">
         <textarea
           ref={textareaRef}

@@ -1,8 +1,7 @@
 import { config } from "dotenv";
 import { WebSocketServer, WebSocket } from "ws";
-import { v4 as uuidv4 } from "uuid";
-import { chatChainService, ChatMessage } from "../langchain/chain";
-import { workerPool } from "../queue/workerPool";
+import { ChatMessage } from "../langchain/chain";
+import { workerPool, GenerateResult } from "../queue/workerPool";
 
 config({ path: ".env.local" });
 
@@ -13,14 +12,14 @@ const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000";
 interface WebSocketMessage {
   messageId: string;
   sessionId: string;
-  message: string;
+  messages: ChatMessage[];
 }
 
 interface WebSocketResponse {
   messageId: string;
   sessionId: string;
-  type: "chunk" | "done" | "error";
-  data: string;
+  type: "chunk" | "tool_calls" | "done" | "error";
+  data: unknown;
 }
 
 const ALLOWED_ORIGINS = (
@@ -48,25 +47,13 @@ wss.on("connection", (ws: WebSocket) => {
   ws.on("message", async (data: string) => {
     try {
       const message: WebSocketMessage = JSON.parse(data.toString());
-      console.log("Received message:", message);
-
-      const userMessage: ChatMessage = {
-        id: uuidv4(),
-        role: "user",
-        content: message.message,
-        timestamp: Date.now(),
-      };
-      console.log("Adding user message to memory:", message.sessionId);
-      await chatChainService.addMessageToMemory(message.sessionId, userMessage);
-      console.log("User message added to memory");
+      console.log("Received message for session:", message.sessionId);
 
       try {
-        console.log("Starting workerPool.process:", message.sessionId);
-        const response = await workerPool.process(
+        const result: GenerateResult = await workerPool.process(
           message.sessionId,
-          message.message,
+          message.messages,
           (chunk: string) => {
-            console.log("Received chunk, sending:", chunk.slice(0, 50));
             const response: WebSocketResponse = {
               messageId: message.messageId,
               sessionId: message.sessionId,
@@ -74,30 +61,31 @@ wss.on("connection", (ws: WebSocket) => {
               data: chunk,
             };
             ws.send(JSON.stringify(response));
-          },
-        );
-        console.log(
-          "workerPool.process completed, response length:",
-          response.length,
+          }
         );
 
-        const aiMessage: ChatMessage = {
-          id: uuidv4(),
-          role: "assistant",
-          content: response,
-          timestamp: Date.now(),
-        };
-        await chatChainService.addMessageToMemory(message.sessionId, aiMessage);
+        // 发送 tool_calls（如果存在）
+        if (result.toolCalls.length > 0) {
+          const toolCallsResponse: WebSocketResponse = {
+            messageId: message.messageId,
+            sessionId: message.sessionId,
+            type: "tool_calls",
+            data: result.toolCalls,
+          };
+          ws.send(JSON.stringify(toolCallsResponse));
+        }
 
+        // 发送完成
         const doneResponse: WebSocketResponse = {
           messageId: message.messageId,
           sessionId: message.sessionId,
           type: "done",
-          data: response,
+          data: {
+            content: result.content,
+            finishReason: result.finishReason,
+          },
         };
-        console.log("Sending done response");
         ws.send(JSON.stringify(doneResponse));
-        console.log("Done response sent");
       } catch (error) {
         console.error("workerPool.process error:", error);
         const errorResponse: WebSocketResponse = {

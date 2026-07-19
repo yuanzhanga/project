@@ -1,17 +1,25 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { ChatMessage } from "@/lib/langchain/chain";
+import { ToolCall } from "@/lib/tools/types";
 
 interface WebSocketMessage {
   messageId: string;
   sessionId: string;
-  message: string;
+  messages: ChatMessage[];
 }
 
 interface WebSocketResponse {
   messageId: string;
   sessionId: string;
-  type: "chunk" | "done" | "error";
-  data: string;
+  type: "chunk" | "tool_calls" | "done" | "error";
+  data: unknown;
+}
+
+export interface WSResult {
+  content: string;
+  finishReason: string;
+  toolCalls: ToolCall[];
 }
 
 interface UseWebSocketOptions {
@@ -20,7 +28,8 @@ interface UseWebSocketOptions {
   onClose?: () => void;
   onError?: (error: Error) => void;
   onChunk?: (chunk: string) => void;
-  onComplete?: (content: string) => void;
+  onToolCalls?: (toolCalls: ToolCall[]) => void;
+  onComplete?: (content: string, finishReason: string) => void;
   onReconnectFailed?: () => void;
   onConnectionTimeout?: () => void;
   reconnectAttempts?: number;
@@ -36,6 +45,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     onClose,
     onError,
     onChunk,
+    onToolCalls,
     onComplete,
     onReconnectFailed,
     onConnectionTimeout,
@@ -55,9 +65,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     Map<
       string,
       {
-        resolve: (content: string) => void;
+        resolve: (result: WSResult) => void;
         reject: (error: Error) => void;
         onChunk?: (chunk: string) => void;
+        onToolCalls?: (toolCalls: ToolCall[]) => void;
       }
     >
   >(new Map());
@@ -71,6 +82,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const isClosingRef = useRef(false);
 
   const onChunkRef = useRef(onChunk);
+  const onToolCallsRef = useRef(onToolCalls);
   const onCompleteRef = useRef(onComplete);
   const onErrorRef = useRef(onError);
   const onOpenRef = useRef(onOpen);
@@ -78,38 +90,17 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const onReconnectFailedRef = useRef(onReconnectFailed);
   const onConnectionTimeoutRef = useRef(onConnectionTimeout);
 
-  useEffect(() => {
-    onChunkRef.current = onChunk;
-  }, [onChunk]);
-
-  useEffect(() => {
-    onCompleteRef.current = onComplete;
-  }, [onComplete]);
-
-  useEffect(() => {
-    onErrorRef.current = onError;
-  }, [onError]);
-
-  useEffect(() => {
-    onOpenRef.current = onOpen;
-  }, [onOpen]);
-
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    onReconnectFailedRef.current = onReconnectFailed;
-  }, [onReconnectFailed]);
-
-  useEffect(() => {
-    onConnectionTimeoutRef.current = onConnectionTimeout;
-  }, [onConnectionTimeout]);
+  useEffect(() => { onChunkRef.current = onChunk; }, [onChunk]);
+  useEffect(() => { onToolCallsRef.current = onToolCalls; }, [onToolCalls]);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+  useEffect(() => { onOpenRef.current = onOpen; }, [onOpen]);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  useEffect(() => { onReconnectFailedRef.current = onReconnectFailed; }, [onReconnectFailed]);
+  useEffect(() => { onConnectionTimeoutRef.current = onConnectionTimeout; }, [onConnectionTimeout]);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return;
-    }
+    if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     setConnectionStatus("connecting");
     shouldReconnectRef.current = true;
@@ -117,7 +108,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     connectionTimedOutRef.current = false;
     hasTriggeredFallbackRef.current = false;
 
-    // 清除之前的超时定时器
     if (connectionTimeoutRef.current) {
       clearTimeout(connectionTimeoutRef.current);
       connectionTimeoutRef.current = null;
@@ -126,7 +116,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     try {
       const ws = new WebSocket(url);
 
-      // 设置连接超时检测
       connectionTimeoutRef.current = setTimeout(() => {
         if (ws.readyState !== WebSocket.OPEN) {
           connectionTimedOutRef.current = true;
@@ -141,7 +130,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       }, connectionTimeout);
 
       ws.onopen = () => {
-        // 连接成功，清除超时定时器
         if (connectionTimeoutRef.current) {
           clearTimeout(connectionTimeoutRef.current);
           connectionTimeoutRef.current = null;
@@ -159,18 +147,43 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           const response: WebSocketResponse = JSON.parse(event.data);
           const handler = messageHandlersRef.current.get(response.messageId);
 
-          if (handler) {
-            if (response.type === "chunk") {
-              handler.onChunk?.(response.data);
-            } else if (response.type === "done") {
-              handler.resolve(response.data);
-              onCompleteRef.current?.(response.data);
+          switch (response.type) {
+            case "chunk":
+              handler?.onChunk?.(response.data as string);
+              break;
+            case "tool_calls":
+              handler?.onToolCalls?.(response.data as ToolCall[]);
+              onToolCallsRef.current?.(response.data as ToolCall[]);
+              break;
+            case "done": {
+              const doneData = (response.data || {}) as {
+                content: string;
+                finishReason: string;
+              };
+              handler?.resolve({
+                content: doneData.content || "",
+                finishReason: doneData.finishReason || "stop",
+                toolCalls: [],
+              });
+              onCompleteRef.current?.(
+                doneData.content || "",
+                doneData.finishReason || "stop"
+              );
               messageHandlersRef.current.delete(response.messageId);
-            } else if (response.type === "error") {
-              handler.reject(new Error(response.data));
-              onErrorRef.current?.(new Error(response.data));
-              messageHandlersRef.current.delete(response.messageId);
+              break;
             }
+            case "error":
+              handler?.reject(
+                new Error(
+                  typeof response.data === "string"
+                    ? response.data
+                    : "Unknown error"
+                )
+              );
+              // 不调用 onErrorRef（那是连接级错误回调）
+              // 消息级错误通过 promise rejection 传递给 useChatClient
+              messageHandlersRef.current.delete(response.messageId);
+              break;
           }
         } catch (e) {
           console.error("Failed to parse WebSocket message:", e);
@@ -207,11 +220,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
       ws.onerror = (event) => {
         if (isClosingRef.current) return;
-
-        if (
-          !connectionTimedOutRef.current &&
-          !hasTriggeredFallbackRef.current
-        ) {
+        if (!connectionTimedOutRef.current && !hasTriggeredFallbackRef.current) {
           setConnectionStatus("error");
           const error = new Error("WebSocket error");
           hasTriggeredFallbackRef.current = true;
@@ -248,9 +257,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const sendMessage = useCallback(
     (
       sessionId: string,
-      message: string,
+      messages: ChatMessage[],
       chunkCallback?: (chunk: string) => void,
-    ): Promise<string> => {
+      toolCallsCallback?: (toolCalls: ToolCall[]) => void
+    ): Promise<WSResult> => {
       return new Promise((resolve, reject) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
           reject(new Error("WebSocket is not connected"));
@@ -262,12 +272,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           resolve,
           reject,
           onChunk: chunkCallback,
+          onToolCalls: toolCallsCallback,
         });
 
         const wsMessage: WebSocketMessage = {
           messageId,
           sessionId,
-          message,
+          messages,
         };
 
         wsRef.current.send(JSON.stringify(wsMessage));
@@ -277,10 +288,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             messageHandlersRef.current.delete(messageId);
             reject(new Error("Message timeout"));
           }
-        }, 30000);
+        }, 120000); // 增加到 120s 支持 tool call 循环
       });
     },
-    [],
+    []
   );
 
   useEffect(() => {

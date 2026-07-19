@@ -8,6 +8,7 @@ import {
 } from "react-virtualized";
 import { ChatMessage } from "@/lib/langchain/chain";
 import MarkdownRenderer from "./MarkdownRenderer";
+import ToolCallGroup from "./ToolCallGroup";
 
 interface VirtualMessageListProps {
   messages: ChatMessage[];
@@ -15,12 +16,16 @@ interface VirtualMessageListProps {
   isStreaming?: boolean;
   currentSessionId?: string | null;
   onScrollToBottom?: () => void;
+  onToolExecute?: (toolCallId: string) => void;
+  onToolCancel?: (toolCallId: string) => void;
 }
 
 const VirtualMessageList: React.FC<VirtualMessageListProps> = ({
   messages,
   streamingContent = "",
   isStreaming = false,
+  onToolExecute,
+  onToolCancel,
 }) => {
   const listRef = useRef<List>(null);
   const cacheRef = useRef(
@@ -98,10 +103,39 @@ const VirtualMessageList: React.FC<VirtualMessageListProps> = ({
       const message = messages[index];
       if (!message) return null;
 
-      // 确保内容不为 undefined
       const content = message.content ?? "";
       const role = message.role ?? "assistant";
       const timestamp = message.timestamp ?? Date.now();
+      const hasToolCalls =
+        role === "assistant" &&
+        message.tool_calls &&
+        message.tool_calls.length > 0;
+
+      // tool 角色消息：紧凑结果卡片
+      if (role === "tool") {
+        return (
+          <CellMeasurer
+            cache={cacheRef.current}
+            columnIndex={0}
+            key={key}
+            parent={parent}
+            rowIndex={index}
+          >
+            <div style={style} className="flex justify-start mb-2 px-4">
+              <div className="max-w-[80%] px-3 py-1.5 rounded-xl bg-gray-800/50 border border-gray-700/50 text-gray-400 text-xs">
+                <span className="text-gray-500">
+                  🛠️ {message.name || "工具"} →{" "}
+                </span>
+                <span className="text-gray-400">
+                  {content.length > 100
+                    ? content.slice(0, 100) + "..."
+                    : content}
+                </span>
+              </div>
+            </div>
+          </CellMeasurer>
+        );
+      }
 
       return (
         <CellMeasurer
@@ -136,16 +170,28 @@ const VirtualMessageList: React.FC<VirtualMessageListProps> = ({
               <div className="whitespace-pre-wrap break-words min-h-[20px]">
                 {content ? (
                   <MarkdownRenderer content={content} />
+                ) : hasToolCalls ? (
+                  <span className="text-gray-500 text-xs">
+                    已请求 {message.tool_calls!.length} 个工具
+                  </span>
                 ) : (
                   <span className="text-gray-400 italic">空消息</span>
                 )}
               </div>
+              {/* 🔧 Tool Call Group */}
+              {hasToolCalls && (
+                <ToolCallGroup
+                  toolCalls={message.tool_calls!}
+                  onExecute={onToolExecute}
+                  onCancel={onToolCancel}
+                />
+              )}
             </div>
           </div>
         </CellMeasurer>
       );
     },
-    [messages, isStreaming, streamingContent],
+    [messages, isStreaming, streamingContent, onToolExecute, onToolCancel],
   );
 
   const getRowHeight = useCallback(({ index }: { index: number }) => {

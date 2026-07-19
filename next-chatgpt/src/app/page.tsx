@@ -3,9 +3,16 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import VirtualMessageList from "@/components/VirtualMessageList";
 import ChatInput from "@/components/ChatInput";
+import AppSkeleton from "@/components/AppSkeleton";
 import { ChatSession, ChatMessage } from "@/lib/langchain/chain";
 import { useChatClient } from "@/hooks/useChatClient";
+import { ToolCall, ChatPhase } from "@/lib/tools/types";
+import { toolRegistry } from "@/lib/tools/registry";
+import { registerAllTools } from "@/lib/tools/executor";
 import { v4 as uuidv4 } from "uuid";
+
+// 前端也需要注册工具（用于 isAutoExecute 判断）
+registerAllTools();
 
 const SESSIONS_KEY = "chat_sessions";
 
@@ -17,28 +24,39 @@ export default function Home() {
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
 
+  // 🆕 Tool Call 状态
+  const [chatPhase, setChatPhase] = useState<ChatPhase>("idle");
+  const [pendingToolCalls, setPendingToolCalls] = useState<ToolCall[]>([]);
+
   const currentSessionIdRef = useRef<string | null>(null);
   useEffect(() => {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
+  const currentMessagesRef = useRef<ChatMessage[]>(currentMessages);
+  useEffect(() => {
+    currentMessagesRef.current = currentMessages;
+  }, [currentMessages]);
+
   const updateSessionMessages = useCallback(
     (sessionId: string, messages: ChatMessage[]) => {
       setSessions((prev) =>
         prev.map((s) =>
-          s.id === sessionId ? { ...s, messages, updatedAt: Date.now() } : s,
-        ),
+          s.id === sessionId ? { ...s, messages, updatedAt: Date.now() } : s
+        )
       );
     },
-    [],
+    []
   );
 
   const updateSessionMessagesRef = useRef<typeof updateSessionMessages>(
-    updateSessionMessages,
+    updateSessionMessages
   );
   useEffect(() => {
     updateSessionMessagesRef.current = updateSessionMessages;
   }, [updateSessionMessages]);
+
+  // 初始化
   useEffect(() => {
     setMounted(true);
     try {
@@ -51,6 +69,7 @@ export default function Home() {
           content: msg.content ?? "",
           role: msg.role ?? "assistant",
           timestamp: msg.timestamp ?? Date.now(),
+          // 兼容旧数据：tool_calls / tool_call_id / name 为 undefined 时正常
         })),
       }));
       setSessions(validatedSessions);
@@ -108,8 +127,165 @@ export default function Home() {
         setCurrentMessages(remaining.length > 0 ? remaining[0].messages : []);
       }
     },
-    [currentSessionId, sessions],
+    [currentSessionId, sessions]
   );
+
+  // ===== 🆕 Tool Call 相关函数 =====
+
+  const toolCallsSnapshotRef = useRef<ToolCall[]>([]);
+
+  /** 执行单个工具（调用后端） */
+  const executeTool = useCallback(
+    async (toolCall: ToolCall): Promise<void> => {
+      try {
+        toolCall.parsedArgs = JSON.parse(toolCall.function.arguments || "{}");
+      } catch { toolCall.parsedArgs = {}; }
+
+      toolCall.status = "executing";
+      setPendingToolCalls((prev) => [...prev]);
+
+      try {
+        const response = await fetch("/api/tools/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: toolCall.function.name,
+            arguments: toolCall.function.arguments,
+          }),
+        });
+        const data = await response.json();
+        toolCall.status = data.status === "success" ? "completed" : "error";
+        toolCall.result = data.result || "执行失败";
+      } catch (err) {
+        toolCall.status = "error";
+        toolCall.result = err instanceof Error ? err.message : "网络请求失败";
+      }
+      setPendingToolCalls((prev) => [...prev]);
+    },
+    []
+  );
+
+  /** 用户确认执行 manual 工具 */
+  const handleToolExecute = useCallback(
+    (toolCallId: string) => {
+      setPendingToolCalls((prev) => {
+        const tc = prev.find((t) => t.id === toolCallId);
+        if (tc) { tc.status = "approved"; executeTool(tc); }
+        return [...prev];
+      });
+    },
+    [executeTool]
+  );
+
+  /** 用户取消 manual 工具 */
+  const handleToolCancel = useCallback((toolCallId: string) => {
+    setPendingToolCalls((prev) => {
+      const tc = prev.find((t) => t.id === toolCallId);
+      if (tc) tc.status = "cancelled";
+      return [...prev];
+    });
+  }, []);
+
+  /** 🆕 useEffect: 检测所有工具 resolved → 触发后续发送 */
+  useEffect(() => {
+    if (chatPhase !== "awaiting_tools") return;
+    if (pendingToolCalls.length === 0) return;
+
+    const allResolved = pendingToolCalls.every(
+      (tc) =>
+        tc.status === "completed" ||
+        tc.status === "error" ||
+        tc.status === "cancelled"
+    );
+    if (!allResolved) return;
+
+    // 保存快照供后续发送使用
+    toolCallsSnapshotRef.current = [...pendingToolCalls];
+    // 转换到 sending_tools 阶段
+    setChatPhase("sending_tools");
+  }, [chatPhase, pendingToolCalls]);
+
+  /** 🆕 useEffect: sending_tools 阶段 → 构造 tool 消息并发回 AI */
+  useEffect(() => {
+    if (chatPhase !== "sending_tools") return;
+
+    const toolCalls = toolCallsSnapshotRef.current;
+    if (toolCalls.length === 0) return;
+
+    const sessionId = currentSessionIdRef.current;
+    if (!sessionId) {
+      setChatPhase("idle");
+      return;
+    }
+
+    let cancelled = false;
+
+    const doFollowUp = async () => {
+      // 构造 tool 消息
+      const toolMessages: ChatMessage[] = toolCalls
+        .filter((tc) => tc.status === "completed" || tc.status === "error")
+        .map((tc) => ({
+          id: uuidv4(),
+          role: "tool" as const,
+          tool_call_id: tc.id,
+          name: tc.function.name,
+          content: tc.result || "",
+          timestamp: Date.now(),
+        }));
+
+      // 追加 tool 消息到当前对话
+      let messagesToSend: ChatMessage[] = [];
+      setCurrentMessages((prev) => {
+        const newMessages = [...prev, ...toolMessages];
+        messagesToSend = newMessages;
+        updateSessionMessagesRef.current?.(sessionId, newMessages);
+        currentMessagesRef.current = newMessages;
+        return newMessages;
+      });
+
+      // 等 React 提交状态
+      await new Promise((r) => setTimeout(r, 100));
+      if (cancelled) return;
+
+      setPendingToolCalls([]);
+      setChatPhase("streaming");
+      setIsStreaming(true);
+      setStreamingContent("");
+
+      try {
+        await sendChatMessageRef.current(sessionId, messagesToSend);
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Tool follow-up error:", error);
+          setIsStreaming(false);
+          setChatPhase("idle");
+        }
+      }
+    };
+
+    doFollowUp();
+    return () => { cancelled = true; };
+  }, [chatPhase]);
+
+  const handleToolCalls = useCallback(
+    (toolCalls: ToolCall[]) => {
+      for (const tc of toolCalls) {
+        tc.status = toolRegistry.isAutoExecute(tc.function.name)
+          ? "executing"
+          : "pending";
+      }
+
+      setPendingToolCalls([...toolCalls]);
+      setChatPhase("awaiting_tools");
+
+      // Auto 工具并发执行
+      const autoTools = toolCalls.filter((tc) => tc.status === "executing");
+      autoTools.forEach((tc) => executeTool(tc));
+    },
+    [executeTool]
+  );
+
+  // ===== useChatClient =====
 
   const {
     connectionType,
@@ -120,29 +296,65 @@ export default function Home() {
     onChunk: (chunk) => {
       setStreamingContent((prev) => prev + chunk);
     },
-    onComplete: (fullContent) => {
+    onToolCalls: (toolCalls: ToolCall[]) => {
+      // 存储 tool calls（用于添加到 assistant 消息中）
+      pendingToolCallsRef.current = toolCalls;
+    },
+    onComplete: (fullContent: string, finishReason: string) => {
       const sessionId = currentSessionIdRef.current;
       const updateFn = updateSessionMessagesRef.current;
-      if (sessionId && fullContent.trim() && updateFn) {
-        const aiMsg: ChatMessage = {
-          id: uuidv4(),
-          role: "assistant",
-          content: fullContent,
-          timestamp: Date.now(),
-        };
-        setCurrentMessages((prev) => {
-          const newMessages = [...prev, aiMsg];
-          updateFn(sessionId, newMessages);
-          return newMessages;
+
+      if (!sessionId || !updateFn) {
+        setIsStreaming(false);
+        setStreamingContent("");
+        setChatPhase("idle");
+        return;
+      }
+
+      // 创建 assistant 消息
+      const toolCalls = pendingToolCallsRef.current;
+      const aiMsg: ChatMessage = {
+        id: uuidv4(),
+        role: "assistant",
+        content: fullContent,
+        timestamp: Date.now(),
+      };
+
+      if (toolCalls && toolCalls.length > 0) {
+        aiMsg.tool_calls = toolCalls;
+        // 重置 tool calls status
+        toolCalls.forEach((tc) => {
+          tc.status = "pending";
         });
       }
+
+      setCurrentMessages((prev) => {
+        const newMessages = [...prev, aiMsg];
+        updateFn(sessionId, newMessages);
+        currentMessagesRef.current = newMessages;
+        return newMessages;
+      });
+
       setIsStreaming(false);
       setStreamingContent("");
+
+      // 判断是否需要进入 tool call 循环
+      if (
+        finishReason === "tool_calls" &&
+        toolCalls &&
+        toolCalls.length > 0
+      ) {
+        handleToolCalls(toolCalls);
+      } else {
+        setChatPhase("idle");
+      }
+      pendingToolCallsRef.current = [];
     },
     onError: (error) => {
       console.error("Chat error:", error);
       setIsStreaming(false);
       setStreamingContent("");
+      setChatPhase("idle");
     },
   });
 
@@ -150,6 +362,10 @@ export default function Home() {
   useEffect(() => {
     sendChatMessageRef.current = sendChatMessage;
   }, [sendChatMessage]);
+
+  const pendingToolCallsRef = useRef<ToolCall[]>([]);
+
+  // ===== 发送消息 =====
 
   const handleSendMessage = useCallback(
     async (message: string) => {
@@ -165,36 +381,47 @@ export default function Home() {
       setCurrentMessages((prev) => {
         const newMessages = [...prev, userMessage];
         updateSessionMessages(currentSessionId, newMessages);
+        currentMessagesRef.current = newMessages;
         return newMessages;
       });
 
+      setChatPhase("streaming");
       setIsStreaming(true);
       setStreamingContent("");
+      setPendingToolCalls([]);
+      pendingToolCallsRef.current = [];
 
       try {
-        await sendChatMessageRef.current(currentSessionId, message);
+        // 发送完整 messages 数组
+        const latestMessages = currentMessagesRef.current;
+        await sendChatMessageRef.current(currentSessionId, latestMessages);
       } catch (error) {
+        console.error("Send error:", error);
         setIsStreaming(false);
+        setChatPhase("idle");
       }
     },
-    [currentSessionId, updateSessionMessages],
+    [currentSessionId, updateSessionMessages]
   );
 
   const handleClearChat = useCallback(() => {
     if (currentSessionId) {
       setCurrentMessages([]);
       updateSessionMessages(currentSessionId, []);
+      setPendingToolCalls([]);
+      setChatPhase("idle");
     }
   }, [currentSessionId, updateSessionMessages]);
 
-  // 在 hydration 完成前显示加载状态
+  // 在 hydration 完成前显示骨架
   if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-lg">加载中...</div>
-      </div>
-    );
+    return <AppSkeleton />;
   }
+
+  const isProcessing =
+    isStreaming ||
+    chatPhase === "awaiting_tools" ||
+    chatPhase === "sending_tools";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex">
@@ -247,11 +474,17 @@ export default function Home() {
                   {connectionStatus === "fallback" && " (降级)"}
                 </span>
               </div>
+              {/* Tool Call 状态指示 */}
+              {chatPhase === "awaiting_tools" && (
+                <span className="text-xs text-yellow-400 animate-pulse ml-2">
+                  ⏳ 等待工具执行...
+                </span>
+              )}
             </div>
             <button
               onClick={handleClearChat}
               className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-              disabled={isStreaming}
+              disabled={isProcessing}
             >
               清空对话
             </button>
@@ -264,12 +497,14 @@ export default function Home() {
           streamingContent={streamingContent}
           isStreaming={isStreaming}
           currentSessionId={currentSessionId}
+          onToolExecute={handleToolExecute}
+          onToolCancel={handleToolCancel}
         />
 
         {/* Input */}
         <ChatInput
           onSendMessage={handleSendMessage}
-          disabled={isStreaming || !currentSessionId}
+          disabled={isProcessing || !currentSessionId}
           onCreateSession={createSession}
           hasActiveSession={!!currentSessionId}
         />

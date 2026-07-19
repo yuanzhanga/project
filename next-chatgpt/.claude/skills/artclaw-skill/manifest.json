@@ -1,0 +1,276 @@
+{
+  "name": "artclaw-creative-suite",
+  "version": "1.2.0",
+  "displayName": "ARTCLAW AI Creative Suite",
+  "description": "Invoke ARTCLAW platform's AI content creation capabilities via REST API. Supports AI image generation, video generation with optional BGM/audio, standalone audio/BGM generation, workflow execution, multimodal analysis, model selection guidance, and more.",
+  "author": {
+    "name": "ARTCLAW Team",
+    "url": "https://artclaw.com/"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "image-generation",
+    "video-generation",
+    "audio-generation",
+    "bgm",
+    "background-music",
+    "model-selection",
+    "text-generation",
+    "voice-stt",
+    "voice-tts",
+    "rest-api",
+    "artclaw",
+    "marketing",
+    "creative",
+    "text-to-image",
+    "text-to-video",
+    "ai-painting",
+    "virtual-human",
+    "asset-library"
+  ],
+  "skill": "SKILL.md",
+  "main": "__init__.py",
+  "scripts": {
+    "feishu_send_video": {
+      "path": "scripts/feishu_send_video.py",
+      "description": "Send video/image messages via Feishu (upload file → get file_key → send media message)",
+      "runtime": "python3",
+      "dependencies": [
+        "requests"
+      ],
+      "credentials": "~/.openclaw/openclaw.json → channels.feishu"
+    },
+    "telegram_send_video": {
+      "path": "scripts/telegram_send_video.py",
+      "description": "Send video messages via Telegram Bot API (sendVideo, supports thumbnail and caption)",
+      "runtime": "python3",
+      "dependencies": [
+        "requests"
+      ],
+      "credentials": "TELEGRAM_BOT_TOKEN environment variable"
+    },
+    "artclaw": {
+      "path": "scripts/artclaw.py",
+      "description": "ArtClaw REST API CLI client — supports all API endpoints (generation/analysis/workflow/prompt), designed for async Agent invocation. 23 subcommands, JSON output, supports --dry-run and spawn-task.",
+      "runtime": "python3",
+      "dependencies": [
+        "requests"
+      ],
+      "credentials": "ARTCLAW_API_KEY environment variable"
+    }
+  },
+  "api": {
+    "baseUrl": "https://artclaw.com/api/v1",
+    "transport": "http",
+    "endpoints": {
+      "generate": {
+        "image": {
+          "method": "POST",
+          "path": "/generate/image"
+        },
+        "video": {
+          "method": "POST",
+          "path": "/generate/video"
+        },
+        "seedance-video": {
+          "method": "POST",
+          "path": "/volcengine/video",
+          "description": "Seedance 2.0 exclusive video generation with return_last_frame, priority, safety_identifier"
+        },
+        "seedance-tasks-get": {
+          "method": "GET",
+          "path": "/volcengine/video/tasks/{task_id}"
+        },
+        "seedance-tasks-cancel": {
+          "method": "POST",
+          "path": "/volcengine/video/tasks/{task_id}/cancel"
+        },
+        "seedance-tasks-list": {
+          "method": "GET",
+          "path": "/volcengine/video/tasks"
+        },
+        "audio": {
+          "method": "POST",
+          "path": "/generate/audio"
+        },
+        "text": {
+          "method": "POST",
+          "path": "/generate/text",
+          "description": "Text generation (sync by default, async with callback_url)"
+        },
+        "text-chat-create": {
+          "method": "POST",
+          "path": "/generate/text/chat"
+        },
+        "text-chat-message": {
+          "method": "POST",
+          "path": "/generate/text/chat/{chat_id}/message"
+        },
+        "text-chat-history": {
+          "method": "GET",
+          "path": "/generate/text/chat/{chat_id}/history"
+        },
+        "marketing-image": {
+          "method": "POST",
+          "path": "/generate/marketing-image"
+        }
+      },
+      "voice": {
+        "stt": {
+          "method": "POST",
+          "path": "/generate/voice/stt",
+          "mode": "async",
+          "description": "Speech-to-text (async). Submit with audio base64, returns job_id. Poll GET /jobs/{job_id} for result."
+        },
+        "tts": {
+          "method": "POST",
+          "path": "/generate/voice/tts",
+          "mode": "async",
+          "description": "Text-to-speech (async). Submit with text, returns job_id. Poll GET /jobs/{job_id} for result."
+        }
+      },
+      "assets": {
+        "description": "Volcengine Ark virtual human asset library under /volcengine. All POST, all authenticated.",
+        "group-create": {
+          "method": "POST",
+          "path": "/volcengine/assets/groups/create"
+        },
+        "group-list": {
+          "method": "POST",
+          "path": "/volcengine/assets/groups/list"
+        },
+        "group-get": {
+          "method": "POST",
+          "path": "/volcengine/assets/groups/get"
+        },
+        "group-update": {
+          "method": "POST",
+          "path": "/volcengine/assets/groups/update"
+        },
+        "group-delete": {
+          "method": "POST",
+          "path": "/volcengine/assets/groups/delete"
+        },
+        "create": {
+          "method": "POST",
+          "path": "/volcengine/assets/create",
+          "mode": "async",
+          "description": "Upload asset (async). Returns Asset ID, poll until Status=Active."
+        },
+        "list": {
+          "method": "POST",
+          "path": "/volcengine/assets/list"
+        },
+        "get": {
+          "method": "POST",
+          "path": "/volcengine/assets/get"
+        },
+        "update": {
+          "method": "POST",
+          "path": "/volcengine/assets/update"
+        },
+        "delete": {
+          "method": "POST",
+          "path": "/volcengine/assets/delete"
+        }
+      },
+      "analyze": {
+        "image": {
+          "method": "POST",
+          "path": "/analyze/image"
+        },
+        "video": {
+          "method": "POST",
+          "path": "/analyze/video"
+        },
+        "script": {
+          "method": "POST",
+          "path": "/analyze/script"
+        },
+        "characters": {
+          "method": "POST",
+          "path": "/analyze/characters"
+        }
+      },
+      "workflows": {
+        "list": {
+          "method": "GET",
+          "path": "/workflows/"
+        },
+        "run": {
+          "method": "POST",
+          "path": "/workflows/{workflow_id}/run"
+        }
+      },
+      "jobs": {
+        "get": {
+          "method": "GET",
+          "path": "/jobs/{job_id}"
+        },
+        "list": {
+          "method": "GET",
+          "path": "/jobs/"
+        },
+        "cancel": {
+          "method": "POST",
+          "path": "/jobs/{job_id}/cancel"
+        }
+      },
+      "account": {
+        "info": {
+          "method": "GET",
+          "path": "/account/info"
+        }
+      },
+      "auth": {
+        "verify": {
+          "method": "POST",
+          "path": "/auth/verify"
+        }
+      }
+    }
+  },
+  "auth": {
+    "type": "apiKey",
+    "headerName": "X-API-KEY",
+    "paramLocation": "header",
+    "prefix": "vk_",
+    "required": true,
+    "helpUrl": "https://artclaw.com/settings",
+    "helpText": "Create an API Key in ARTCLAW Settings > API Keys. The key starts with vk_",
+    "publicPaths": [
+      "/api/v1/auth/verify"
+    ]
+  },
+  "metadata": {
+    "openclaw": {
+      "emoji": "🎨",
+      "requires": {
+        "env": [
+          "ARTCLAW_API_KEY"
+        ]
+      },
+      "primaryEnv": "ARTCLAW_API_KEY",
+      "envMapping": {
+        "ARTCLAW_API_KEY": "X-API-KEY"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArtClaw1/artclaw-skill.git",
+    "branch": "main"
+  },
+  "update": {
+    "method": "tarball",
+    "url": "https://github.com/ArtClaw1/artclaw-skill/archive/refs/heads/main.tar.gz"
+  },
+  "install": {
+    "steps": [
+      "Create an API Key at https://artclaw.com/settings (starts with vk_)",
+      "Add X-API-KEY: vk_your_key_here to the HTTP request header",
+      "Call REST API endpoints at https://artclaw.com/api/v1/*"
+    ]
+  }
+}

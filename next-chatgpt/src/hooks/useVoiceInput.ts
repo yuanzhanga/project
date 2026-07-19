@@ -10,8 +10,10 @@ interface UseVoiceInputReturn {
   isRecording: boolean;
   isProcessing: boolean;
   hasSupport: boolean;
-  toggleRecording: () => void;
+  startRecording: () => void;
   stopRecording: () => void;
+  cancelRecording: () => void;
+  toggleRecording: () => void;
 }
 
 export function useVoiceInput(
@@ -24,10 +26,12 @@ export function useVoiceInput(
 
   const finalTextRef = useRef("");
   const isRecordingRef = useRef(false);
+  const canceledRef = useRef(false);
   const recognitionRef = useRef<any>(null);
 
   const hasSupport =
-    "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
+    typeof window !== "undefined" &&
+    ("webkitSpeechRecognition" in window || "SpeechRecognition" in window);
 
   const cleanupRecognition = useCallback(() => {
     if (recognitionRef.current) {
@@ -41,87 +45,113 @@ export function useVoiceInput(
     (window as any).__voiceRecognition = null;
   }, []);
 
+  // 结束录音的公共逻辑；canceled 为 true 时丢弃本次识别结果
+  const finishRecording = useCallback(
+    (canceled: boolean) => {
+      if (!isRecordingRef.current) return;
+
+      canceledRef.current = canceled;
+      cleanupRecognition();
+      setIsRecording(false);
+      isRecordingRef.current = false;
+      onStatusChange?.(false);
+
+      if (canceled) {
+        finalTextRef.current = "";
+        onResult?.("");
+      }
+    },
+    [cleanupRecognition, onStatusChange, onResult],
+  );
+
   const stopRecording = useCallback(() => {
-    if (!isRecordingRef.current) return;
+    finishRecording(false);
+  }, [finishRecording]);
 
-    cleanupRecognition();
-    setIsRecording(false);
-    isRecordingRef.current = false;
-    onStatusChange?.(false);
-  }, [cleanupRecognition, onStatusChange]);
+  const cancelRecording = useCallback(() => {
+    finishRecording(true);
+  }, [finishRecording]);
 
-  const toggleRecording = useCallback(() => {
+  const startRecording = useCallback(() => {
     if (!hasSupport) {
       alert("您的浏览器不支持语音识别功能");
       return;
     }
+    if (isRecordingRef.current) return;
 
-    if (isRecording) {
+    finalTextRef.current = "";
+    canceledRef.current = false;
+    setIsProcessing(true);
+
+    setTimeout(() => {
+      try {
+        const SpeechRecognition =
+          (window as any).SpeechRecognition ||
+          (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "zh-CN";
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event: any) => {
+          if (canceledRef.current) return;
+
+          let interimTranscript = "";
+          let finalTranscript = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          if (finalTranscript) {
+            finalTextRef.current += finalTranscript;
+          }
+
+          const fullText = finalTextRef.current + interimTranscript;
+          onResult?.(fullText);
+        };
+
+        recognition.onerror = (event: any) => {
+          if (event.error !== "no-speech") {
+            finishRecording(false);
+          }
+        };
+
+        recognition.onend = () => {
+          if (isRecordingRef.current && recognitionRef.current) {
+            try {
+              recognitionRef.current.start();
+            } catch (e) {}
+          }
+        };
+
+        recognitionRef.current = recognition;
+        (window as any).__voiceRecognition = recognition;
+        recognition.start();
+        setIsRecording(true);
+        isRecordingRef.current = true;
+        setIsProcessing(false);
+        onStatusChange?.(true);
+      } catch (e) {
+        console.error("启动失败:", e);
+        setIsProcessing(false);
+      }
+    }, 300);
+  }, [hasSupport, onResult, onStatusChange, finishRecording]);
+
+  const toggleRecording = useCallback(() => {
+    if (isRecordingRef.current) {
       stopRecording();
     } else {
-      finalTextRef.current = "";
-      setIsProcessing(true);
-
-      setTimeout(() => {
-        try {
-          const SpeechRecognition =
-            (window as any).SpeechRecognition ||
-            (window as any).webkitSpeechRecognition;
-          const recognition = new SpeechRecognition();
-          recognition.continuous = true;
-          recognition.interimResults = true;
-          recognition.lang = "zh-CN";
-          recognition.maxAlternatives = 1;
-
-          recognition.onresult = (event: any) => {
-            let interimTranscript = "";
-            let finalTranscript = "";
-
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-              const transcript = event.results[i][0].transcript;
-              if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-              } else {
-                interimTranscript += transcript;
-              }
-            }
-
-            if (finalTranscript) {
-              finalTextRef.current += finalTranscript;
-            }
-
-            const fullText = finalTextRef.current + interimTranscript;
-            onResult?.(fullText);
-          };
-
-          recognition.onerror = (event: any) => {
-            if (event.error !== "no-speech") {
-              stopRecording();
-            }
-          };
-
-          recognition.onend = () => {
-            if (isRecordingRef.current && recognitionRef.current) {
-              try {
-                recognitionRef.current.start();
-              } catch (e) {}
-            }
-          };
-
-          recognitionRef.current = recognition;
-          (window as any).__voiceRecognition = recognition;
-          recognition.start();
-          setIsRecording(true);
-          isRecordingRef.current = true;
-          setIsProcessing(false);
-          onStatusChange?.(true);
-        } catch (e) {
-          console.error("启动失败:", e);
-          setIsProcessing(false);
-        }
-      }, 300);
+      startRecording();
     }
-  }, [hasSupport, isRecording, stopRecording, onResult, onStatusChange]);
+  }, [startRecording, stopRecording]);
 
   useEffect(() => {
     return () => {
@@ -133,7 +163,9 @@ export function useVoiceInput(
     isRecording,
     isProcessing,
     hasSupport,
-    toggleRecording,
+    startRecording,
     stopRecording,
+    cancelRecording,
+    toggleRecording,
   };
 }
