@@ -38,19 +38,25 @@ description: 当需要对前端代码（React、Vue、Next.js、TypeScript、Tai
 
 ### 第二阶段：评估规模，决定审查策略
 
-**先跑分批脚本，不要手工数文件。**
+**优先使用 MCP 工具（自动获取 diff + 分批），不要再手工跑 git 命令。**
 
-```bash
-# 如果是审查 git diff（推荐）
-git diff --name-only <base-branch>...HEAD | node .claude/skills/frontend-code-review/scripts/split-diff.mjs
-
-# 如果是审查指定文件列表
-node .claude/skills/frontend-code-review/scripts/split-diff.mjs --files "src/a.ts,src/b.tsx,..."
+```
+1. 调用 MCP 工具 read_project_context 获取项目上下文（框架版本、TypeScript 配置等）
+2. 调用 MCP 工具 review_code({ target: "用户指定的范围" })
+   - 不传 target → 获取所有未提交改动（unstaged + staged）
+   - 传 target: "main...HEAD" → 获取与 main 分支的差异
+   - 传 target: "HEAD~5..HEAD" → 获取最近 5 个 commit
+   - 传 files: [...] → 只审查指定文件
 ```
 
-脚本输出 JSON 包含：策略类型、分桶结果、每批文件列表、预估行数、推荐并发数。
+MCP 返回的 JSON 已包含：分桶结果、每批文件 diff、审查侧重点、推荐并发数。
 
-策略决策逻辑（脚本自动判断）：
+**降级方案（MCP 不可用时）**：手工执行脚本
+```bash
+git diff --name-only <base>...HEAD | node .claude/skills/frontend-code-review/scripts/split-diff.mjs
+```
+
+脚本输出 JSON，策略决策逻辑：
 
 | 规模 | 文件数 | 策略 |
 |------|--------|------|
@@ -79,25 +85,52 @@ node .claude/skills/frontend-code-review/scripts/split-diff.mjs --files "src/a.t
 
 **如果文件之间有强依赖关系**（如 `User.vue` + `user.service.ts` + `user.controller.ts`），应合入同一桶，保留上下文。判断依据：文件间是否有 import 关系且改动互相影响。
 
-#### 3.2 单批审查流程
+#### 3.2 审查执行方式（按规模选择）
 
-**按照脚本输出的 `batches` 数组顺序执行**，不要自行调整批次或文件归属。
+**小规模（≤5 文件）：手工逐文件审查**
+1. `Read` 所有文件
+2. 按下方"审查维度"全部过一遍
+3. 直接输出审查报告
 
-对每一批文件，执行以下步骤：
+**中/大规模（>5 文件）：使用 Workflow 并发审查**
 
-1. **读文件**：Read 该批所有文件
-2. **精简 diff**（仅限中/大规模）：跳过纯格式变更（空白、缩进）、import 重排行、注释行。单文件 diff 超过 3000 字符的截断并在报告中标注 `[已截断]`
-3. **审查**：对该批文件按下方"审查维度"全部过一遍
-4. **记结果**：记录该批的所有发现，附上所属桶和文件名
+调用 `Workflow` 工具执行审查工作流，将分批计划 + 项目上下文作为参数传入：
 
-#### 3.3 并发规则（仅中大规模）
+```
+Workflow(
+  scriptPath: ".claude/skills/frontend-code-review/scripts/review-workflow.mjs",
+  args: { batches, projectContext, strategy, maxFilesPerBatch }
+)
+```
 
-对于"中"和"大"规模，可以并行审查**相互独立的桶**（如"样式"桶和"测试"桶互不依赖，可并发）。
+Workflow 内部自动完成：
+1. `parallel()` 启动每批一个独立 Agent，真正并行审查（最多 3 并发）
+2. 每个 Agent 按 `FINDINGS_SCHEMA` 输出结构化 JSON
+3. 合并去重：同一文件、同一维度、同一行的重复发现合并为一条
+4. 按严重度排序：critical → warning → suggestion
+5. 输出按维度、按文件的统计汇总
 
-- 最多**同时 3 批并发**
-- 同一桶内的文件必须串行（保持上下文连贯）
-- 并发审查用独立 Agent 执行，各自返回结构化结果
-- 并发完成后由主 Agent 合并去重
+返回结果格式：
+```json
+{
+  "summary": {
+    "totalFiles": 12, "totalBatches": 4, "totalFindings": 23,
+    "bySeverity": { "critical": 3, "warning": 12, "suggestion": 8 },
+    "byDimension": { "React Hooks": 5, "性能": 3, ... },
+    "byFile": { "src/a.ts": [...], ... }
+  },
+  "findings": [ ... ],
+  "projectContext": { ... }
+}
+```
+
+**注意**：Workflow 脚本里不能跑 git 命令，所以分批计划必须在调用前准备好（通过 MCP 或 split-diff.mjs）。
+
+#### 3.3 并发与容错
+
+- Workflow 的 `parallel()` 保证真正的并行执行，不会人工漏掉某批
+- 单个批次审查失败 → 该批返回 `null`，不影响其他批次，合并时自动跳过
+- Agent 的 `schema` 参数约束输出格式，杜绝"格式不对、字段缺失"的问题
 
 #### 3.4 Token 控制
 

@@ -11,7 +11,8 @@
  *   node scripts/split-diff.mjs --files "src/a.ts,src/b.tsx,..."
  */
 
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
+import { resolve, dirname, extname, relative } from "path";
 
 // ====== 配置（与 SKILL.md 中的阈值对齐） ======
 const MAX_FILES_FULL_REVIEW = 5;      // ≤5 文件全量审查
@@ -68,7 +69,231 @@ const HIGH_RISK_PATTERNS = [
   "innerHTML",
 ];
 
-// ====== 主流程 ======
+// ====== 依赖分析 ======
+
+/** 从文件内容中提取 import 的目标路径（相对路径部分） */
+function extractImports(filePath, content) {
+  const deps = [];
+  // import { x } from './foo' | import x from '../bar' | import type { x } from './foo'
+  // export { x } from './foo'
+  // import('./foo')
+  // require('./foo')
+  const patterns = [
+    /(?:import|export)\s+(?:type\s+)?(?:\{[^}]*\}|[\w$]+|\*\s+as\s+[\w$]+)\s+from\s+['"]([^'"]+)['"]/g,
+    /(?:import|export)\s+['"]([^'"]+)['"]/g,
+    /import\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ];
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(content)) !== null) {
+      deps.push(match[1]);
+    }
+  }
+  return deps;
+}
+
+// ====== 路径别名解析 ======
+const PROJECT_ROOT = process.cwd();
+
+/** 从 tsconfig.json 读取 paths 别名 */
+let _pathAliases = null;
+function getPathAliases() {
+  if (_pathAliases !== null) return _pathAliases;
+  _pathAliases = {};
+  try {
+    const tsconfig = JSON.parse(readFileSync(resolve(PROJECT_ROOT, "tsconfig.json"), "utf-8"));
+    const paths = tsconfig.compilerOptions?.paths || {};
+    const baseUrl = tsconfig.compilerOptions?.baseUrl || ".";
+    const baseDir = resolve(PROJECT_ROOT, baseUrl);
+    for (const [alias, targets] of Object.entries(paths)) {
+      // 只取第一个 target，去掉通配符
+      const aliasKey = alias.replace(/\/\*$/, "/");
+      const target = Array.isArray(targets) ? targets[0].replace(/\/\*$/, "/") : targets.replace(/\/\*$/, "/");
+      _pathAliases[aliasKey] = resolve(baseDir, target);
+    }
+  } catch {
+    // tsconfig 不存在或解析失败
+  }
+  return _pathAliases;
+}
+
+/** 解析 import 路径为项目内的绝对文件路径 */
+function resolveImportPath(fromFile, importPath) {
+  let resolved = null;
+
+  // 1. 相对路径
+  if (importPath.startsWith(".")) {
+    const fromDir = dirname(fromFile);
+    resolved = resolve(fromDir, importPath);
+  }
+
+  // 2. 路径别名 (如 @/, ~/)
+  if (!resolved) {
+    const aliases = getPathAliases();
+    for (const [aliasKey, aliasTarget] of Object.entries(aliases)) {
+      if (importPath.startsWith(aliasKey)) {
+        const relativePart = importPath.slice(aliasKey.length);
+        resolved = resolve(aliasTarget, relativePart);
+        break;
+      }
+    }
+  }
+
+  if (!resolved) return null;
+
+  // 尝试补全扩展名
+  const extensions = ["", ".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte", "/index.ts", "/index.tsx", "/index.js", "/index.jsx"];
+  for (const ext of extensions) {
+    const candidate = resolved + ext;
+    if (existsSync(candidate)) {
+      // 转回项目相对路径，统一用 / 分隔
+      return relative(PROJECT_ROOT, candidate).replace(/\\/g, "/");
+    }
+  }
+  return null;
+}
+
+/**
+ * 构建依赖图
+ * 返回 Map<filePath, Set<importedFile>>
+ * 只保留双方都在 changedFiles 里的边（只关心改动文件间的依赖）
+ */
+function analyzeDependencies(files) {
+  const fileSet = new Set(files.map((f) => f.replace(/\\/g, "/")));
+  const graph = new Map(); // file → Set<file it imports>
+
+  for (const file of files) {
+    const normalizedPath = file.replace(/\\/g, "/");
+
+    // 只分析有 import/require 语法的文件
+    const ext = extname(file).toLowerCase();
+    if (![".ts", ".tsx", ".js", ".jsx", ".vue", ".svelte", ".mjs", ".cjs"].includes(ext)) continue;
+
+    let content;
+    try {
+      content = readFileSync(file, "utf-8");
+    } catch {
+      continue; // 文件不可读，跳过
+    }
+
+    const rawImports = extractImports(file, content);
+    const resolved = new Set();
+
+    for (const imp of rawImports) {
+      const target = resolveImportPath(normalizedPath, imp);
+      if (target && fileSet.has(target)) {
+        resolved.add(target);
+      }
+    }
+
+    if (resolved.size > 0) {
+      graph.set(normalizedPath, resolved);
+    }
+  }
+
+  return graph;
+}
+
+/**
+ * 根据依赖图合并分桶
+ * 规则：如果文件 A 引用了文件 B（且两者都在改动中），
+ * 将 B 从原桶移到 A 所在桶（按更高优先级桶为准）
+ * 同时用 BFS 传播：A→B 且 B→C → A、B、C 合入同一桶
+ */
+function mergeDependentBuckets(buckets, depGraph) {
+  if (depGraph.size === 0) return;
+
+  // 1. 构建文件 → 所在桶的映射
+  const fileToBucket = {};
+  for (const [bucketName, fileList] of Object.entries(buckets)) {
+    for (const f of fileList) {
+      fileToBucket[f.replace(/\\/g, "/")] = bucketName;
+    }
+  }
+
+  // 2. 构建双向边，找连通分量
+  const neighbors = new Map(); // file → Set<neighbor>
+  for (const [file, imports] of depGraph) {
+    if (!neighbors.has(file)) neighbors.set(file, new Set());
+    for (const target of imports) {
+      neighbors.get(file).add(target);
+      // 双向：target 也被连到 file
+      if (!neighbors.has(target)) neighbors.set(target, new Set());
+      neighbors.get(target).add(file);
+    }
+  }
+
+  // 3. BFS 找连通分量
+  const visited = new Set();
+  const components = [];
+
+  for (const file of neighbors.keys()) {
+    if (visited.has(file)) continue;
+    const component = [];
+    const queue = [file];
+    visited.add(file);
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      component.push(current);
+      for (const neighbor of neighbors.get(current) || []) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    if (component.length > 1) {
+      components.push(component);
+    }
+  }
+
+  if (components.length === 0) return;
+
+  console.error(`[split-diff] 依赖分析: 发现 ${components.length} 个连通分量需要合并`);
+  for (const comp of components) {
+    console.error(`  - ${comp.join(", ")}`);
+  }
+
+  // 4. 对每个连通分量，找最高优先级桶，把分量内所有文件移过去
+  const priorityMap = {};
+  for (const rule of BUCKET_RULES) {
+    priorityMap[rule.name] = rule.priority;
+  }
+
+  for (const component of components) {
+    // 找分量内所有文件当前所在桶
+    const bucketNames = component.map((f) => fileToBucket[f]).filter(Boolean);
+    if (bucketNames.length <= 1) continue; // 已经在同一桶
+
+    // 选最高优先级桶（数字最小）→ 排序后的第一个
+    bucketNames.sort((a, b) => (priorityMap[a] || 99) - (priorityMap[b] || 99));
+    const targetBucket = bucketNames[0];
+
+    // 把其他桶的文件移到目标桶
+    for (const file of component) {
+      const currentBucket = fileToBucket[file];
+      if (currentBucket && currentBucket !== targetBucket) {
+        // 从原桶移除
+        const oldList = buckets[currentBucket];
+        const idx = oldList.findIndex((f) => f.replace(/\\/g, "/") === file);
+        if (idx >= 0) oldList.splice(idx, 1);
+
+        // 加入目标桶
+        if (!buckets[targetBucket]) buckets[targetBucket] = [];
+        buckets[targetBucket].push(file.replace(/\//g, "/"));
+        fileToBucket[file] = targetBucket;
+      }
+    }
+  }
+
+  // 5. 清理空桶
+  for (const key of Object.keys(buckets)) {
+    if (buckets[key].length === 0) delete buckets[key];
+  }
+}
 async function main() {
   const files = parseInput();
   if (files.length === 0) {
@@ -78,6 +303,10 @@ async function main() {
 
   // 1. 分类文件到桶
   const buckets = bucketFiles(files);
+
+  // 1.5 依赖分析：有 import 关系的文件合并到同一桶
+  const depGraph = analyzeDependencies(files);
+  mergeDependentBuckets(buckets, depGraph);
 
   // 2. 计算 diff 行数（尝试从 git diff --stat 读取；不可用时标记 unknown）
   const fileStats = estimateDiffSizes(files);

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "frontend-code-review": {
+      "command": "node",
+      "args": [".claude/skills/frontend-code-review/scripts/mcp-server.mjs"],
+      "cwd": "${projectDir}"
+    }
+  }
+}
