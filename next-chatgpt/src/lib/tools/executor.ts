@@ -83,9 +83,67 @@ export const calculateExecutor: ToolExecutor = {
   },
 };
 
+// === web_search (Serper.dev) ===
+export const webSearchExecutor: ToolExecutor = {
+  definition: toolDefinitions[3],
+  async execute(args) {
+    const query = (args.query || "").trim();
+    if (!query) {
+      throw new Error("搜索关键词不能为空");
+    }
+
+    const num = Math.min(Math.max(args.num || 5, 1), 10);
+    const apiKey = process.env.SERPER_API_KEY;
+    if (!apiKey) {
+      throw new Error("SERPER_API_KEY 未配置");
+    }
+
+    const response = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        q: query,
+        num,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Serper API 请求失败: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+
+    // 提取精简结果
+    const organic = data.organic || [];
+    const results = organic.slice(0, num).map((r: any, i: number) => ({
+      index: i + 1,
+      title: r.title || "",
+      link: r.link || "",
+      snippet: r.snippet || "",
+    }));
+
+    return JSON.stringify(
+      {
+        query,
+        totalResults: data.searchInformation?.totalResults || "未知",
+        searchTime: data.searchInformation?.timeTakenDisplay || "未知",
+        results,
+      },
+      null,
+      2,
+    );
+  },
+};
+
 /** 注册所有内置工具到全局注册表 */
 export function registerAllTools(): void {
   toolRegistry.register(getCurrentTimeExecutor);
   toolRegistry.register(getWeatherExecutor);
   toolRegistry.register(calculateExecutor);
+  toolRegistry.register(webSearchExecutor);
 }

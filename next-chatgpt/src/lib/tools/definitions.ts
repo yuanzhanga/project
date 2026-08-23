@@ -74,4 +74,34 @@ export const toolDefinitions: ToolDefinition[] = [
       risk: "safe",
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description:
+        "使用 Google 搜索引擎搜索互联网，获取最新的网页信息。当用户询问实时信息、新闻、事实查询、最新动态，或者需要从互联网上查找任何信息时使用此工具。返回搜索结果包含标题、链接和摘要。",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description:
+              "搜索关键词，尽量简洁明确。例如: 'GPT-5 release date 2025', '今天的天气北京'",
+          },
+          num: {
+            type: "number",
+            description:
+              "返回结果数量，默认为5，最大10。不需要大量结果时保持默认值即可。",
+          },
+        },
+        required: ["query"],
+      },
+    },
+    meta: {
+      autoExecute: true,
+      displayName: "网络搜索",
+      icon: "🌐",
+      risk: "safe",
+    },
+  },
 ];

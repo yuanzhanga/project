@@ -19,6 +19,14 @@ function ensureToolsRegistered(): void {
   }
 }
 
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  dataUrl: string; // base64 data URL for persistence
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system" | "tool";
@@ -27,6 +35,7 @@ export interface ChatMessage {
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
+  attachments?: ChatAttachment[];
 }
 
 export interface ChatSession {
@@ -50,7 +59,7 @@ export class ChatChainService {
         );
       }
       this.llm = new ChatOpenAI({
-        modelName: "deepseek-chat",
+        modelName: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash-vision-exp",
         apiKey: apiKey,
         temperature: 0.7,
         streaming: true,
@@ -175,8 +184,27 @@ export class ChatChainService {
   private convertToLangChainMessages(messages: ChatMessage[]): BaseMessage[] {
     return messages.map((msg) => {
       switch (msg.role) {
-        case "user":
+        case "user": {
+          // 多模态：带图片附件时，用 OpenAI 兼容的 content blocks 传递图片与文字
+          if (msg.attachments && msg.attachments.length > 0) {
+            const contentParts: Array<Record<string, unknown>> = [];
+            if (msg.content) {
+              contentParts.push({ type: "text", text: msg.content });
+            }
+            for (const att of msg.attachments) {
+              if (att.dataUrl) {
+                contentParts.push({
+                  type: "image_url",
+                  image_url: { url: att.dataUrl },
+                });
+              }
+            }
+            if (contentParts.length > 0) {
+              return new HumanMessage({ content: contentParts });
+            }
+          }
           return new HumanMessage(msg.content);
+        }
         case "assistant":
           if (msg.tool_calls?.length) {
             return new AIMessage({

@@ -3,6 +3,7 @@ import { z } from 'zod'
 const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   DEEPSEEK_API_KEY: z.string().optional(),
+  DEEPSEEK_MODEL: z.string().default('deepseek-v4-flash-vision-exp'),
   MODEL_PROVIDER: z.enum(['openai', 'deepseek', 'mock']).default('mock'),
   MAX_CONTEXT_TOKENS: z.string().default('8000'),
   SUMMARY_THRESHOLD: z.string().default('4000'),

@@ -4,17 +4,45 @@ import Sidebar from "@/components/Sidebar";
 import VirtualMessageList from "@/components/VirtualMessageList";
 import ChatInput from "@/components/ChatInput";
 import AppSkeleton from "@/components/AppSkeleton";
-import { ChatSession, ChatMessage } from "@/lib/langchain/chain";
+import { ChatSession, ChatMessage, ChatAttachment } from "@/lib/langchain/chain";
 import { useChatClient } from "@/hooks/useChatClient";
 import { ToolCall, ChatPhase } from "@/lib/tools/types";
 import { toolRegistry } from "@/lib/tools/registry";
 import { registerAllTools } from "@/lib/tools/executor";
 import { v4 as uuidv4 } from "uuid";
+import { TTSProvider, useTTSContext } from "@/contexts/TTSContext";
 
 // 前端也需要注册工具（用于 isAutoExecute 判断）
 registerAllTools();
 
-const SESSIONS_KEY = "chat_sessions";
+/** 自动播放 TTS：监听 streaming → idle 转换，自动朗读最后一条 AI 回复 */
+function AutoPlayTTS({
+  messages,
+  isStreaming,
+  chatPhase,
+}: {
+  messages: ChatMessage[];
+  isStreaming: boolean;
+  chatPhase: ChatPhase;
+}) {
+  const { speak } = useTTSContext();
+  const prevStreamingRef = useRef(isStreaming);
+
+  useEffect(() => {
+    const wasStreaming = prevStreamingRef.current;
+    prevStreamingRef.current = isStreaming;
+
+    // streaming 结束 → idle（无工具调用），自动朗读最后一条 AI 消息
+    if (wasStreaming && !isStreaming && chatPhase === "idle") {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg?.role === "assistant" && lastMsg.content?.trim()) {
+        speak(lastMsg.content, lastMsg.id);
+      }
+    }
+  }, [isStreaming, chatPhase, messages, speak]);
+
+  return null;
+}
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -23,6 +51,7 @@ export default function Home() {
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [loadingSessions, setLoadingSessions] = useState(true);
 
   // 🆕 Tool Call 状态
   const [chatPhase, setChatPhase] = useState<ChatPhase>("idle");
@@ -38,6 +67,40 @@ export default function Home() {
     currentMessagesRef.current = currentMessages;
   }, [currentMessages]);
 
+  /** 将会话消息防抖落盘到后端，避免流式/tool 回环期间频繁请求 */
+  const persistSessionToBackend = useCallback(
+    async (sessionId: string, messages: ChatMessage[]) => {
+      try {
+        const body = JSON.stringify({ sessionId, messages });
+        const res = await fetch("/api/sessions", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+        if (res.status === 404) {
+          // 会话尚未在后端创建时先补建，再重试落盘
+          await fetch("/api/sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: sessionId }),
+          });
+          await fetch("/api/sessions", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+        }
+      } catch (error) {
+        console.error("Persist session failed:", error);
+      }
+    },
+    []
+  );
+
+  const persistTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
+
   const updateSessionMessages = useCallback(
     (sessionId: string, messages: ChatMessage[]) => {
       setSessions((prev) =>
@@ -45,8 +108,17 @@ export default function Home() {
           s.id === sessionId ? { ...s, messages, updatedAt: Date.now() } : s
         )
       );
+      const existing = persistTimersRef.current.get(sessionId);
+      if (existing) clearTimeout(existing);
+      persistTimersRef.current.set(
+        sessionId,
+        setTimeout(() => {
+          persistTimersRef.current.delete(sessionId);
+          persistSessionToBackend(sessionId, messages);
+        }, 300)
+      );
     },
-    []
+    [persistSessionToBackend]
   );
 
   const updateSessionMessagesRef = useRef<typeof updateSessionMessages>(
@@ -56,42 +128,41 @@ export default function Home() {
     updateSessionMessagesRef.current = updateSessionMessages;
   }, [updateSessionMessages]);
 
-  // 初始化
+  // 初始化：从后端加载会话
   useEffect(() => {
+    let cancelled = false;
     setMounted(true);
-    try {
-      const data = localStorage.getItem(SESSIONS_KEY);
-      const storedSessions: ChatSession[] = data ? JSON.parse(data) : [];
-      const validatedSessions = storedSessions.map((session) => ({
-        ...session,
-        messages: session.messages.map((msg) => ({
-          ...msg,
-          content: msg.content ?? "",
-          role: msg.role ?? "assistant",
-          timestamp: msg.timestamp ?? Date.now(),
-          // 兼容旧数据：tool_calls / tool_call_id / name 为 undefined 时正常
-        })),
-      }));
-      setSessions(validatedSessions);
-      if (validatedSessions.length > 0) {
-        setCurrentSessionId(validatedSessions[0].id);
-        setCurrentMessages(validatedSessions[0].messages);
-      }
-    } catch {
-      // 忽略 localStorage 错误
-    }
-  }, []);
 
-  // 保存会话到 localStorage
-  useEffect(() => {
-    if (mounted) {
+    (async () => {
       try {
-        localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-      } catch {
-        // 忽略 localStorage 错误
+        const res = await fetch("/api/sessions");
+        const storedSessions: ChatSession[] = res.ok ? await res.json() : [];
+        if (cancelled) return;
+        const validatedSessions = storedSessions.map((session) => ({
+          ...session,
+          messages: session.messages.map((msg) => ({
+            ...msg,
+            content: msg.content ?? "",
+            role: msg.role ?? "assistant",
+            timestamp: msg.timestamp ?? Date.now(),
+          })),
+        }));
+        setSessions(validatedSessions);
+        if (validatedSessions.length > 0) {
+          setCurrentSessionId(validatedSessions[0].id);
+          setCurrentMessages(validatedSessions[0].messages);
+        }
+      } catch (error) {
+        console.error("Failed to load sessions:", error);
+      } finally {
+        if (!cancelled) setLoadingSessions(false);
       }
-    }
-  }, [sessions, mounted]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
 
@@ -112,6 +183,13 @@ export default function Home() {
     setSessions((prev) => [newSession, ...prev]);
     setCurrentSessionId(newSession.id);
     setCurrentMessages([]);
+
+    // 同步到后端（乐观创建，id 由前端生成避免卡顿）
+    fetch("/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: newSession.id }),
+    }).catch((error) => console.error("Create session failed:", error));
   }, []);
 
   const selectSession = useCallback((sessionId: string) => {
@@ -126,6 +204,9 @@ export default function Home() {
         setCurrentSessionId(remaining.length > 0 ? remaining[0].id : null);
         setCurrentMessages(remaining.length > 0 ? remaining[0].messages : []);
       }
+      fetch(`/api/sessions?sessionId=${encodeURIComponent(sessionId)}`, {
+        method: "DELETE",
+      }).catch((error) => console.error("Delete session failed:", error));
     },
     [currentSessionId, sessions]
   );
@@ -368,14 +449,48 @@ export default function Home() {
   // ===== 发送消息 =====
 
   const handleSendMessage = useCallback(
-    async (message: string) => {
-      if (!currentSessionId || !message.trim()) return;
+    async (message: string, files?: import("@/hooks/useFileUpload").UploadedFile[]) => {
+      if (!currentSessionId || (!message.trim() && (!files || files.length === 0))) return;
+
+      // 将上传文件转为可持久化的 attachments
+      let attachments: ChatAttachment[] | undefined;
+      if (files && files.length > 0) {
+        attachments = await Promise.all(
+          files.map(
+            (f) =>
+              new Promise<ChatAttachment>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                  resolve({
+                    id: f.id,
+                    name: f.name,
+                    type: f.type,
+                    size: f.size,
+                    dataUrl: reader.result as string,
+                  });
+                };
+                reader.onerror = () => {
+                  // 读取失败时用预览 URL 作为兜底
+                  resolve({
+                    id: f.id,
+                    name: f.name,
+                    type: f.type,
+                    size: f.size,
+                    dataUrl: f.previewUrl,
+                  });
+                };
+                reader.readAsDataURL(f.file);
+              }),
+          ),
+        );
+      }
 
       const userMessage: ChatMessage = {
         id: uuidv4(),
         role: "user",
-        content: message,
+        content: message || "发送了一张图片",
         timestamp: Date.now(),
+        attachments,
       };
 
       setCurrentMessages((prev) => {
@@ -413,8 +528,8 @@ export default function Home() {
     }
   }, [currentSessionId, updateSessionMessages]);
 
-  // 在 hydration 完成前显示骨架
-  if (!mounted) {
+  // 在 hydration / 会话加载完成前显示骨架
+  if (!mounted || loadingSessions) {
     return <AppSkeleton />;
   }
 
@@ -424,7 +539,13 @@ export default function Home() {
     chatPhase === "sending_tools";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex">
+    <TTSProvider>
+      <AutoPlayTTS
+        messages={currentMessages}
+        isStreaming={isStreaming}
+        chatPhase={chatPhase}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex">
       <Sidebar
         sessions={sessions}
         currentSessionId={currentSessionId}
@@ -510,5 +631,6 @@ export default function Home() {
         />
       </main>
     </div>
+    </TTSProvider>
   );
 }

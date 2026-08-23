@@ -9,6 +9,7 @@ import {
 import { ChatMessage } from "@/lib/langchain/chain";
 import MarkdownRenderer from "./MarkdownRenderer";
 import ToolCallGroup from "./ToolCallGroup";
+import TTSButton from "./TTSButton";
 
 interface VirtualMessageListProps {
   messages: ChatMessage[];
@@ -166,7 +167,31 @@ const VirtualMessageList: React.FC<VirtualMessageListProps> = ({
                     minute: "2-digit",
                   })}
                 </span>
+                {role === "assistant" && content && (
+                  <TTSButton text={content} messageId={message.id} />
+                )}
               </div>
+              {/* 附件图片预览 */}
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {message.attachments.map((att) => (
+                    <a
+                      key={att.id}
+                      href={att.dataUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block shrink-0"
+                      title={att.name}
+                    >
+                      <img
+                        src={att.dataUrl}
+                        alt={att.name}
+                        className="w-20 h-20 rounded-lg object-cover border border-white/20 hover:border-white/50 transition-colors"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
               <div className="whitespace-pre-wrap break-words min-h-[20px]">
                 {content ? (
                   <MarkdownRenderer content={content} />

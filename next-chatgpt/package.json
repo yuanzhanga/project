@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:ws\"",
     "dev": "next dev",
     "dev:ws": "tsx src/lib/websocket/server.ts",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:ws\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

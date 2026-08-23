@@ -23,7 +23,7 @@ export class SummaryBufferMemory {
     this.maxTokenLimit = options.maxTokenLimit || 8000;
     this.summaryThreshold = options.summaryThreshold || 4000;
     this.llm = options.llm || new ChatOpenAI({ 
-      modelName: 'deepseek-chat',
+      modelName: process.env.DEEPSEEK_MODEL || 'deepseek-v4-flash-vision-exp',
       apiKey: process.env.DEEPSEEK_API_KEY,
       temperature: 0.1,
       configuration: {
