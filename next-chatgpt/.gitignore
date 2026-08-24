@@ -5,6 +5,7 @@
 
 # 后端会话数据
 .data/sessions.json
+.data/rag/
 
 # 依赖与构建产物
 node_modules/

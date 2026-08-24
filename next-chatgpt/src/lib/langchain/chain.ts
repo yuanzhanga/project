@@ -10,6 +10,7 @@ import { SummaryBufferMemory } from "./memory";
 import { ToolCall } from "@/lib/tools/types";
 import { toolDefinitions } from "@/lib/tools/definitions";
 import { registerAllTools } from "@/lib/tools/executor";
+import { buildRagContext } from "@/lib/rag/service";
 
 let toolsRegistered = false;
 function ensureToolsRegistered(): void {
@@ -107,13 +108,28 @@ export class ChatChainService {
     );
 
     // 转换为 LangChain 消息格式
-    const lcMessages = this.convertToLangChainMessages(messages);
+    let lcMessages = this.convertToLangChainMessages(messages);
 
     // 更新服务端记忆
     const memory = this.getOrCreateMemory(sessionId);
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.role === "user") {
       try { await memory.addUserMessage(lastMsg.content); } catch { /* ok */ }
+    }
+
+    // RAG：基于最后一条用户消息检索知识库，命中则注入上下文供模型引用
+    const lastUserMsg = [...messages].reverse().find(
+      (m) => m.role === "user" && m.content
+    );
+    if (lastUserMsg) {
+      try {
+        const ragContext = await buildRagContext(lastUserMsg.content);
+        if (ragContext) {
+          lcMessages = [new SystemMessage(ragContext), ...lcMessages];
+        }
+      } catch {
+        // RAG 不可用或检索失败时静默降级
+      }
     }
 
     // 流式调用

@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import VirtualMessageList from "@/components/VirtualMessageList";
 import ChatInput from "@/components/ChatInput";
 import AppSkeleton from "@/components/AppSkeleton";
+import KnowledgeBase from "@/components/KnowledgeBase";
 import { ChatSession, ChatMessage, ChatAttachment } from "@/lib/langchain/chain";
 import { useChatClient } from "@/hooks/useChatClient";
 import { ToolCall, ChatPhase } from "@/lib/tools/types";
@@ -647,6 +648,7 @@ export default function Home() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              <KnowledgeBase />
               {/* 自动播报总开关 */}
               <button
                 onClick={() => setAutoPlayTTS((v) => !v)}
