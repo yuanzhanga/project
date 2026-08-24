@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
+import { stripMarkdownForSpeech } from "@/lib/tts";
 
 export type TTSRate = 0.5 | 0.75 | 1 | 1.25 | 1.5 | 1.75 | 2;
 
@@ -138,9 +139,11 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
   const speak = useCallback(
     (text: string, messageId: string) => {
-      if (!hasSupport || !text.trim()) return;
+      if (!hasSupport) return;
+      const clean = stripMarkdownForSpeech(text);
+      if (!clean) return;
       killUtterance();
-      speakChunk(text, messageId, rateRef.current);
+      speakChunk(clean, messageId, rateRef.current);
     },
     [hasSupport, killUtterance, speakChunk],
   );

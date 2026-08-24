@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import VirtualMessageList from "@/components/VirtualMessageList";
 import ChatInput from "@/components/ChatInput";
@@ -15,31 +15,53 @@ import { TTSProvider, useTTSContext } from "@/contexts/TTSContext";
 // 前端也需要注册工具（用于 isAutoExecute 判断）
 registerAllTools();
 
-/** 自动播放 TTS：监听 streaming → idle 转换，自动朗读最后一条 AI 回复 */
+/** 自动播放 TTS：仅在总开关开启时，流式结束后自动朗读最后一条 AI 回复 */
 function AutoPlayTTS({
   messages,
   isStreaming,
   chatPhase,
+  autoPlay,
 }: {
   messages: ChatMessage[];
   isStreaming: boolean;
   chatPhase: ChatPhase;
+  autoPlay: boolean;
 }) {
-  const { speak } = useTTSContext();
+  const { speak, stop } = useTTSContext();
   const prevStreamingRef = useRef(isStreaming);
+  const prevAutoPlayRef = useRef(autoPlay);
+
+  // 找最后一条可朗读的 AI 回复
+  const lastAssistant = useMemo(
+    () =>
+      [...messages]
+        .reverse()
+        .find((m) => m.role === "assistant" && m.content?.trim()),
+    [messages]
+  );
 
   useEffect(() => {
     const wasStreaming = prevStreamingRef.current;
     prevStreamingRef.current = isStreaming;
 
     // streaming 结束 → idle（无工具调用），自动朗读最后一条 AI 消息
-    if (wasStreaming && !isStreaming && chatPhase === "idle") {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg?.role === "assistant" && lastMsg.content?.trim()) {
-        speak(lastMsg.content, lastMsg.id);
-      }
+    if (wasStreaming && !isStreaming && chatPhase === "idle" && autoPlay) {
+      if (lastAssistant) speak(lastAssistant.content!, lastAssistant.id);
     }
-  }, [isStreaming, chatPhase, messages, speak]);
+  }, [isStreaming, chatPhase, messages, speak, autoPlay, lastAssistant]);
+
+  // 打开总开关时立即朗读当前最后一条 AI 回复；关闭时立即停止当前播放
+  useEffect(() => {
+    const wasAutoPlay = prevAutoPlayRef.current;
+    prevAutoPlayRef.current = autoPlay;
+    if (autoPlay && !wasAutoPlay) {
+      if (!isStreaming && chatPhase === "idle" && lastAssistant) {
+        speak(lastAssistant.content!, lastAssistant.id);
+      }
+    } else if (!autoPlay && wasAutoPlay) {
+      stop();
+    }
+  }, [autoPlay, isStreaming, chatPhase, lastAssistant, speak, stop]);
 
   return null;
 }
@@ -52,6 +74,16 @@ export default function Home() {
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [autoPlayTTS, setAutoPlayTTS] = useState(() => {
+    try {
+      return (
+        typeof window !== "undefined" &&
+        localStorage.getItem("tts_auto_play") === "1"
+      );
+    } catch {
+      return false;
+    }
+  });
 
   // 🆕 Tool Call 状态
   const [chatPhase, setChatPhase] = useState<ChatPhase>("idle");
@@ -163,6 +195,17 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  // 保存自动播报开关
+  useEffect(() => {
+    if (mounted) {
+      try {
+        localStorage.setItem("tts_auto_play", autoPlayTTS ? "1" : "0");
+      } catch {
+        // 忽略写入错误
+      }
+    }
+  }, [autoPlayTTS, mounted]);
 
   const currentSession = sessions.find((s) => s.id === currentSessionId);
 
@@ -544,6 +587,7 @@ export default function Home() {
         messages={currentMessages}
         isStreaming={isStreaming}
         chatPhase={chatPhase}
+        autoPlay={autoPlayTTS}
       />
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex">
       <Sidebar
@@ -602,13 +646,35 @@ export default function Home() {
                 </span>
               )}
             </div>
-            <button
-              onClick={handleClearChat}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-              disabled={isProcessing}
-            >
-              清空对话
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 自动播报总开关 */}
+              <button
+                onClick={() => setAutoPlayTTS((v) => !v)}
+                title={
+                  autoPlayTTS
+                    ? "自动播报已开启，AI 回复后自动朗读"
+                    : "自动播报已关闭，需手动点击朗读"
+                }
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border transition-all ${
+                  autoPlayTTS
+                    ? "bg-blue-500/20 text-blue-300 border-blue-500/50"
+                    : "bg-white/5 text-gray-400 border-white/10 hover:text-gray-200"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                </svg>
+                {autoPlayTTS ? "自动播报 开" : "自动播报 关"}
+              </button>
+
+              <button
+                onClick={handleClearChat}
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                disabled={isProcessing}
+              >
+                清空对话
+              </button>
+            </div>
           </div>
         </header>
 

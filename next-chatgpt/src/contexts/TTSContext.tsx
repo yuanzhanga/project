@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useCallback, useRef, useState } from "react";
 import type { TTSRate } from "@/hooks/useTTS";
+import { stripMarkdownForSpeech } from "@/lib/tts";
 
 interface TTSContextValue {
   speak: (text: string, messageId: string) => void;
@@ -117,9 +118,11 @@ export function TTSProvider({ children }: { children: React.ReactNode }) {
 
   const speak = useCallback(
     (text: string, messageId: string) => {
-      if (!hasSupport || !text.trim()) return;
+      if (!hasSupport) return;
+      const clean = stripMarkdownForSpeech(text);
+      if (!clean) return;
       speechSynthesis.cancel();
-      remainingTextRef.current = text;
+      remainingTextRef.current = clean;
       currentMsgIdRef.current = messageId;
       startSpeaking();
     },
