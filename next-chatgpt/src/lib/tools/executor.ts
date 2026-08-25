@@ -1,11 +1,13 @@
 import { ToolExecutor } from "./types";
-import { toolDefinitions } from "./definitions";
 import { toolRegistry } from "./registry";
+import { loadToolDefinitions } from "@/lib/skills/loader";
 
-// === get_current_time ===
-export const getCurrentTimeExecutor: ToolExecutor = {
-  definition: toolDefinitions[0],
-  async execute(args) {
+type ExecutorFn = (args: Record<string, any>) => Promise<string>;
+
+// 执行器只负责执行业务逻辑；函数说明/参数由 src/skills/*/SKILL.md 提供
+const executors: Record<string, ExecutorFn> = {
+  // === get_current_time ===
+  get_current_time: async (args) => {
     const timezone = args.timezone || "Asia/Shanghai";
     const now = new Date();
     const formatter = new Intl.DateTimeFormat("zh-CN", {
@@ -20,14 +22,10 @@ export const getCurrentTimeExecutor: ToolExecutor = {
     });
     return formatter.format(now);
   },
-};
 
-// === get_weather (mock) ===
-export const getWeatherExecutor: ToolExecutor = {
-  definition: toolDefinitions[1],
-  async execute(args) {
+  // === get_weather (mock) ===
+  get_weather: async (args) => {
     const city = args.city || "Beijing";
-    // Mock 数据：随机生成天气
     const conditions = ["晴", "多云", "阴", "小雨", "阵雨"];
     const condition =
       conditions[Math.floor(Math.random() * conditions.length)];
@@ -42,12 +40,9 @@ export const getWeatherExecutor: ToolExecutor = {
       note: "（Mock 数据）",
     });
   },
-};
 
-// === calculate ===
-export const calculateExecutor: ToolExecutor = {
-  definition: toolDefinitions[2],
-  async execute(args) {
+  // === calculate ===
+  calculate: async (args) => {
     const expression = args.expression || "";
 
     // 安全校验：只允许数学表达式和 Math 函数
@@ -56,7 +51,6 @@ export const calculateExecutor: ToolExecutor = {
       throw new Error("表达式包含不允许的字符");
     }
 
-    // 禁用危险操作
     const forbidden = [
       "__proto__",
       "constructor",
@@ -81,12 +75,9 @@ export const calculateExecutor: ToolExecutor = {
     )(Math);
     return String(result);
   },
-};
 
-// === web_search (Serper.dev) ===
-export const webSearchExecutor: ToolExecutor = {
-  definition: toolDefinitions[3],
-  async execute(args) {
+  // === web_search (Serper.dev) ===
+  web_search: async (args) => {
     const query = (args.query || "").trim();
     if (!query) {
       throw new Error("搜索关键词不能为空");
@@ -112,13 +103,11 @@ export const webSearchExecutor: ToolExecutor = {
 
     if (!response.ok) {
       throw new Error(
-        `Serper API 请求失败: ${response.status} ${response.statusText}`,
+        `Serper API 请求失败: ${response.status} ${response.statusText}`
       );
     }
 
     const data = await response.json();
-
-    // 提取精简结果
     const organic = data.organic || [];
     const results = organic.slice(0, num).map((r: any, i: number) => ({
       index: i + 1,
@@ -135,15 +124,25 @@ export const webSearchExecutor: ToolExecutor = {
         results,
       },
       null,
-      2,
+      2
     );
   },
 };
 
-/** 注册所有内置工具到全局注册表 */
+/** 注册所有技能（由 SKILL.md 驱动）到全局注册表 */
 export function registerAllTools(): void {
-  toolRegistry.register(getCurrentTimeExecutor);
-  toolRegistry.register(getWeatherExecutor);
-  toolRegistry.register(calculateExecutor);
-  toolRegistry.register(webSearchExecutor);
+  const defs = loadToolDefinitions();
+  for (const def of defs) {
+    const fn = executors[def.function.name];
+    if (!fn) {
+      console.warn(`[Tools] 未找到技能 "${def.function.name}" 对应的执行器`);
+      continue;
+    }
+    const executor: ToolExecutor = { definition: def, execute: fn };
+    toolRegistry.register(executor);
+  }
+}
+
+export function getExecutor(name: string): ExecutorFn | undefined {
+  return executors[name];
 }

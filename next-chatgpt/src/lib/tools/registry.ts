@@ -1,7 +1,8 @@
-import { ToolDefinition, ToolExecutor, ToolRegistry } from "./types";
+import { ToolDefinition, ToolExecutor, ToolMeta, ToolRegistry } from "./types";
 
 class ToolRegistryService {
   private registry: ToolRegistry = new Map();
+  private metaMap = new Map<string, ToolMeta>();
 
   /** 注册一个工具执行器 */
   register(executor: ToolExecutor): void {
@@ -32,17 +33,27 @@ class ToolRegistryService {
 
   /** 获取工具的 meta 信息 */
   getMeta(name: string) {
-    return this.registry.get(name)?.definition.meta;
+    return this.registry.get(name)?.definition.meta ?? this.metaMap.get(name);
   }
 
   /** 判断工具是否自动执行 */
   isAutoExecute(name: string): boolean {
-    return this.registry.get(name)?.definition.meta.autoExecute ?? false;
+    return (
+      this.registry.get(name)?.definition.meta.autoExecute ??
+      this.metaMap.get(name)?.autoExecute ??
+      false
+    );
+  }
+
+  /** 前端从 /api/tools 拉取元数据填充（不注册执行器） */
+  setMetaList(list: Array<{ name: string; meta: ToolMeta }>): void {
+    this.metaMap = new Map(list.map((x) => [x.name, x.meta]));
   }
 
   /** 清空注册表 */
   clear(): void {
     this.registry.clear();
+    this.metaMap.clear();
   }
 }
 

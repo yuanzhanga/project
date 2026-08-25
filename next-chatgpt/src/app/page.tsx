@@ -9,12 +9,8 @@ import { ChatSession, ChatMessage, ChatAttachment } from "@/lib/langchain/chain"
 import { useChatClient } from "@/hooks/useChatClient";
 import { ToolCall, ChatPhase } from "@/lib/tools/types";
 import { toolRegistry } from "@/lib/tools/registry";
-import { registerAllTools } from "@/lib/tools/executor";
 import { v4 as uuidv4 } from "uuid";
 import { TTSProvider, useTTSContext } from "@/contexts/TTSContext";
-
-// 前端也需要注册工具（用于 isAutoExecute 判断）
-registerAllTools();
 
 /** 自动播放 TTS：仅在总开关开启时，流式结束后自动朗读最后一条 AI 回复 */
 function AutoPlayTTS({
@@ -192,6 +188,25 @@ export default function Home() {
       }
     })();
 
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 加载工具元数据（用于工具卡片展示与 autoExecute 判断）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/tools");
+        const data = await res.json();
+        if (!cancelled && data.tools) {
+          toolRegistry.setMetaList(data.tools);
+        }
+      } catch {
+        // 忽略加载失败
+      }
+    })();
     return () => {
       cancelled = true;
     };
